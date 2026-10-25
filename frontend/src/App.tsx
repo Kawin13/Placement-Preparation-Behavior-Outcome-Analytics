@@ -4,6 +4,9 @@ import { Button } from './components/common/Button';
 import { Card } from './components/common/Card';
 import { Badge } from './components/common/Badge';
 import { EmptyState } from './components/common/EmptyState';
+import { AuthModal } from './components/auth/AuthModal';
+import { fetchHealthTelemetry, type HealthData } from './services/api';
+import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
   Brain,
   Calculator,
@@ -18,17 +21,26 @@ import {
   Server,
   Layers,
   ShieldCheck,
-  AlertCircle
+  KeyRound,
+  UserCheck
 } from 'lucide-react';
-
-import { fetchHealthTelemetry, type HealthData } from './services/api';
 
 export function App() {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [healthStatus, setHealthStatus] = useState<'connected' | 'checking' | 'error'>('checking');
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
 
   useEffect(() => {
+    // Check local storage for existing session
+    const user = getStoredUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+
+    // Probe backend health endpoint
     fetchHealthTelemetry()
       .then((data: HealthData) => {
         setHealth(data);
@@ -38,6 +50,15 @@ export function App() {
         setHealthStatus('error');
       });
   }, []);
+
+  const handleSignOut = () => {
+    removeStoredToken();
+    setCurrentUser(null);
+  };
+
+  const handleAuthSuccess = (user: UserSummary) => {
+    setCurrentUser(user);
+  };
 
   const modules = [
     {
@@ -111,19 +132,58 @@ export function App() {
       {/* Framer-Inspired Navbar */}
       <Navbar
         systemStatus={healthStatus}
-        onStartPractice={() => setSelectedModule('quant')}
-        onSignIn={() => alert('Authentication will be activated in Phase 3.')}
+        currentUser={currentUser}
+        onStartPractice={() => {
+          if (!currentUser) {
+            setAuthMode('signin');
+            setIsAuthModalOpen(true);
+          } else {
+            setSelectedModule('quant');
+          }
+        }}
+        onSignIn={() => {
+          setAuthMode('signin');
+          setIsAuthModalOpen(true);
+        }}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        {/* User Session Banner (if signed in) */}
+        {currentUser && (
+          <div className="mb-10 p-5 rounded-2xl bg-[#FFFFFF] border border-[#E8E0D2] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FAF6ED] border border-[#E8E0D2] flex items-center justify-center text-[#FF5B3D]">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-[#292444] font-display">
+                    Welcome back, {currentUser.full_name}
+                  </h3>
+                  <Badge variant="coral">{currentUser.role}</Badge>
+                </div>
+                <p className="text-xs text-[#5E5875]">
+                  Authenticated Session · Email: <span className="font-mono">{currentUser.email}</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="success" hasDot>
+                Institutional RBAC Active
+              </Badge>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <div className="relative mb-16 sm:mb-24">
           <div className="max-w-3xl">
             {/* Status Pill Badge */}
             <div className="mb-6 inline-flex">
               <Badge variant="coral" hasDot>
-                Phase 2 Scaffolding · Framer Design System
+                Phase 3 · RBAC, Authentication & Security Active
               </Badge>
             </div>
 
@@ -145,19 +205,26 @@ export function App() {
                 variant="primary"
                 size="lg"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
-                onClick={() => setSelectedModule('quant')}
+                onClick={() => {
+                  if (!currentUser) {
+                    setAuthMode('register');
+                    setIsAuthModalOpen(true);
+                  } else {
+                    setSelectedModule('quant');
+                  }
+                }}
               >
-                Start Practice Session
+                {currentUser ? 'Start Practice Session' : 'Register Student Account'}
               </Button>
               <Button
                 variant="secondary"
                 size="lg"
                 onClick={() => {
-                  const el = document.getElementById('database');
+                  const el = document.getElementById('architecture');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                Inspect PostgreSQL Schema
+                View Security Architecture
               </Button>
             </div>
           </div>
@@ -196,8 +263,8 @@ export function App() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-3 text-xs">
-                  <span className="text-white/60">Alembic Migration</span>
-                  <span className="text-[#FF5B3D] font-mono font-semibold">15 Entities Applied</span>
+                  <span className="text-white/60">Authentication & Security</span>
+                  <span className="text-[#FF5B3D] font-mono font-semibold">Argon2 / Bcrypt Active</span>
                 </div>
               </div>
             </div>
@@ -225,7 +292,14 @@ export function App() {
               <Card
                 key={m.id}
                 isHoverable
-                onClick={() => setSelectedModule(m.id)}
+                onClick={() => {
+                  if (!currentUser) {
+                    setAuthMode('signin');
+                    setIsAuthModalOpen(true);
+                  } else {
+                    setSelectedModule(m.id);
+                  }
+                }}
                 className="flex flex-col justify-between"
               >
                 <div>
@@ -268,7 +342,14 @@ export function App() {
                 title="No Practice Attempts Recorded"
                 description="Your skill-gap telemetry requires a minimum of 5 evaluated attempts per topic to display an accurate, statistically defensible diagnostic breakdown."
                 actionText="Start Your First Activity"
-                onAction={() => setSelectedModule('quant')}
+                onAction={() => {
+                  if (!currentUser) {
+                    setAuthMode('signin');
+                    setIsAuthModalOpen(true);
+                  } else {
+                    setSelectedModule('quant');
+                  }
+                }}
               />
             </div>
 
@@ -289,37 +370,45 @@ export function App() {
         <section id="architecture" className="mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card variant="subtle">
-              <Layers className="w-6 h-6 text-[#292444] mb-3" />
+              <KeyRound className="w-6 h-6 text-[#292444] mb-3" />
               <h4 className="text-base font-bold text-[#292444] mb-1.5 font-display">
-                Single-College & SaaS-Ready
+                Cryptographic Password Security
               </h4>
               <p className="text-xs text-[#5E5875] leading-relaxed">
-                All high-level entities map to an indexed <code className="font-mono text-[#292444]">institution_id</code>, ensuring absolute department isolation while remaining SaaS scalable.
+                Passwords are protected using industry-standard bcrypt with 12 salted rounds. Single-use, expiring tokens govern password resets with zero token leakage.
               </p>
             </Card>
 
             <Card variant="subtle">
               <ShieldCheck className="w-6 h-6 text-[#15803D] mb-3" />
               <h4 className="text-base font-bold text-[#292444] mb-1.5 font-display">
-                Privacy & Governance Guardrails
+                Server-Side RBAC Enforcement
               </h4>
               <p className="text-xs text-[#5E5875] leading-relaxed">
-                Student attempts and code solutions are evaluated on the local backend and never transmitted to external third-party AI models.
+                Authorization is enforced strictly on the server across 4 distinct roles (<code className="font-mono text-[#292444]">STUDENT</code>, <code className="font-mono text-[#292444]">TRAINER</code>, <code className="font-mono text-[#292444]">PLACEMENT_OFFICER</code>, <code className="font-mono text-[#292444]">ADMIN</code>).
               </p>
             </Card>
 
             <Card variant="subtle">
-              <AlertCircle className="w-6 h-6 text-[#FF5B3D] mb-3" />
+              <Layers className="w-6 h-6 text-[#FF5B3D] mb-3" />
               <h4 className="text-base font-bold text-[#292444] mb-1.5 font-display">
-                Non-Causal Analytics Guardrails
+                Tenant Isolation & Audit Trails
               </h4>
               <p className="text-xs text-[#5E5875] leading-relaxed">
-                Placement preparation volume is reported as an empirical correlation with placement tiers. It is never misrepresented as guaranteed outcome or individual causation.
+                Cross-institution queries are prohibited at the API layer. Security events, logins, and administrative privilege changes are logged into immutable audit records.
               </p>
             </Card>
           </div>
         </section>
       </main>
+
+      {/* Authentication Modal Dialog */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialMode={authMode}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+      />
 
       {/* Module Selection Dialog / Drawer */}
       {selectedModule && (

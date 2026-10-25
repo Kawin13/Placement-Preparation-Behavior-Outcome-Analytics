@@ -1,18 +1,23 @@
 import type React from 'react';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
-import { GraduationCap, Sparkles } from 'lucide-react';
+import { GraduationCap, Sparkles, LogOut, User as UserIcon } from 'lucide-react';
+import type { UserSummary } from '../../services/auth';
 
 export interface NavbarProps {
   systemStatus?: 'connected' | 'checking' | 'error';
+  currentUser?: UserSummary | null;
   onStartPractice?: () => void;
   onSignIn?: () => void;
+  onSignOut?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   systemStatus = 'connected',
+  currentUser,
   onStartPractice,
   onSignIn,
+  onSignOut,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FAF6ED]/90 backdrop-blur-md border-b border-[#E8E0D2] transition-colors">
@@ -50,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             href="#architecture"
             className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#5E5875] hover:text-[#292444] transition-colors"
           >
-            Architecture
+            Security & RBAC
           </a>
           <a
             href="#database"
@@ -60,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </a>
         </nav>
 
-        {/* System Indicator & Primary CTA */}
+        {/* System Indicator, User Profile & Actions */}
         <div className="flex items-center gap-3">
           <Badge
             variant={systemStatus === 'connected' ? 'success' : systemStatus === 'checking' ? 'warning' : 'error'}
@@ -70,9 +75,36 @@ export const Navbar: React.FC<NavbarProps> = ({
             {systemStatus === 'connected' ? 'PostgreSQL Active' : systemStatus === 'checking' ? 'Checking...' : 'DB Offline'}
           </Badge>
 
-          <Button variant="secondary" size="sm" onClick={onSignIn} className="hidden sm:inline-flex">
-            Sign In
-          </Button>
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-[#E8E0D2] shadow-xs">
+                <div className="w-6 h-6 rounded-full bg-[#FAF6ED] flex items-center justify-center text-[#292444]">
+                  <UserIcon className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-left hidden lg:block">
+                  <span className="text-xs font-bold text-[#292444] block leading-none">
+                    {currentUser.full_name}
+                  </span>
+                  <span className="text-[10px] font-semibold text-[#FF5B3D] uppercase tracking-wider block">
+                    {currentUser.role}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSignOut}
+                title="Sign Out"
+                leftIcon={<LogOut className="w-3.5 h-3.5" />}
+              >
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            </div>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={onSignIn} className="hidden sm:inline-flex">
+              Sign In
+            </Button>
+          )}
 
           <Button
             variant="primary"
