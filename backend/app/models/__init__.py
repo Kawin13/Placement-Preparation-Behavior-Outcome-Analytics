@@ -12,6 +12,7 @@ from app.models.practice import (
     LearningGoal,
 )
 from app.models.placement import PlacementOutcome
+from app.models.training import TrainingProgram, TrainingSession, TrainingAttendance
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -33,5 +34,8 @@ __all__ = [
     "PreparationActivity",
     "LearningGoal",
     "PlacementOutcome",
+    "TrainingProgram",
+    "TrainingSession",
+    "TrainingAttendance",
     "AuditLog",
 ]

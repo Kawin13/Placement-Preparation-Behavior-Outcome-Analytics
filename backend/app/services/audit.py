@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
 import uuid
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from app.models.audit import AuditLog
 from app.core.logging import logger
@@ -8,7 +9,7 @@ SENSITIVE_KEYS = {"password", "token", "password_hash", "secret", "authorization
 
 
 def _sanitize_details(data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """Recursively removes sensitive keys from audit log metadata."""
+    """Recursively removes sensitive keys and serializes Decimal/UUID from audit log metadata."""
     if not data or not isinstance(data, dict):
         return data
     sanitized = {}
@@ -17,6 +18,10 @@ def _sanitize_details(data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]
             sanitized[k] = "[REDACTED]"
         elif isinstance(v, dict):
             sanitized[k] = _sanitize_details(v)
+        elif isinstance(v, Decimal):
+            sanitized[k] = float(v)
+        elif isinstance(v, uuid.UUID):
+            sanitized[k] = str(v)
         else:
             sanitized[k] = v
     return sanitized

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Column, String, Numeric, Date, DateTime, Text, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,8 +15,10 @@ class PlacementOutcome(Base):
     job_title = Column(String(150), nullable=False)
     tier = Column(String(30), nullable=False)
     ctc_lpa = Column(Numeric(5, 2), nullable=True)
+    offer_date = Column(Date, nullable=True)
     verification_status = Column(String(30), default="PENDING_REVIEW", nullable=False)
     proof_document_url = Column(String(500), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
     verified_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     verified_at = Column(DateTime(timezone=True), nullable=True)
@@ -30,7 +32,7 @@ class PlacementOutcome(Base):
             name="chk_placement_tier",
         ),
         CheckConstraint(
-            "verification_status IN ('PENDING_REVIEW', 'OFFICIALLY_VERIFIED', 'REJECTED')",
+            "verification_status IN ('PENDING_REVIEW', 'OFFICIALLY_VERIFIED', 'REJECTED', 'WITHDRAWN')",
             name="chk_verification_status",
         ),
         CheckConstraint("ctc_lpa IS NULL OR ctc_lpa > 0", name="chk_ctc_positive"),

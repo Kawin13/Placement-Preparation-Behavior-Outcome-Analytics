@@ -9,6 +9,8 @@ from app.api.v1.endpoints import (
     analytics,
     readiness,
     coach,
+    placement,
+    training,
 )
 
 api_router = APIRouter()
@@ -39,3 +41,9 @@ api_router.include_router(readiness.router, prefix="/readiness", tags=["Role Rea
 
 # AI Learning Coach & Grounded Pedagogical Mentor
 api_router.include_router(coach.router, prefix="/coach", tags=["AI Learning Coach"])
+
+# Placement Outcomes & Verification
+api_router.include_router(placement.router, prefix="/placement", tags=["Placement Outcomes"])
+
+# Training Effectiveness & Attendance
+api_router.include_router(training.router, prefix="/training", tags=["Training Effectiveness"])

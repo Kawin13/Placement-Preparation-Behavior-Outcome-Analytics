@@ -14,6 +14,8 @@ import { StudentAnalyticsView } from './components/analytics/StudentAnalyticsVie
 import { CohortAnalyticsView } from './components/analytics/CohortAnalyticsView';
 import { RoleReadinessView } from './components/readiness/RoleReadinessView';
 import { AICoachModal } from './components/coach/AICoachModal';
+import { PlacementOutcomesView } from './components/placement/PlacementOutcomesView';
+import { TrainingEffectivenessView } from './components/training/TrainingEffectivenessView';
 import { fetchHealthTelemetry, type HealthData } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -49,7 +51,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog'>('workspace');
+  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'analytics' | 'readiness' | 'outcomes' | 'training' | 'cohort-analytics' | 'catalog'>('workspace');
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
 
@@ -344,6 +346,10 @@ export function App() {
               setIsCoachModalOpen(true);
             }}
           />
+        ) : currentUser && viewMode === 'outcomes' ? (
+          <PlacementOutcomesView currentUser={currentUser} />
+        ) : currentUser && viewMode === 'training' ? (
+          <TrainingEffectivenessView currentUser={currentUser} />
         ) : currentUser && viewMode === 'cohort-analytics' ? (
           <CohortAnalyticsView />
         ) : (

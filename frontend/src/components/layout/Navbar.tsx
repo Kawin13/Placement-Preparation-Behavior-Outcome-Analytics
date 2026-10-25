@@ -7,8 +7,8 @@ import type { UserSummary } from '../../services/auth';
 export interface NavbarProps {
   systemStatus?: 'connected' | 'checking' | 'error';
   currentUser?: UserSummary | null;
-  currentView?: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog';
-  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog') => void;
+  currentView?: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'outcomes' | 'training' | 'cohort-analytics' | 'catalog';
+  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'outcomes' | 'training' | 'cohort-analytics' | 'catalog') => void;
   onStartPractice?: () => void;
   onSignIn?: () => void;
   onSignOut?: () => void;
@@ -96,6 +96,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <span>Role Readiness</span>
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF5B3D]" />
+            </button>
+            {/* Placement Ledger Tab */}
+            <button
+              onClick={() => onViewChange?.('outcomes')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'outcomes'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Placement Ledger
+            </button>
+            {/* Training Impact Tab */}
+            <button
+              onClick={() => onViewChange?.('training')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'training'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Training Impact
             </button>
             {/* Institutional Cohort Analytics Tab for Staff / Trainers / Admins */}
             {currentUser.role !== 'STUDENT' && (
