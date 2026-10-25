@@ -11,6 +11,7 @@ class UserSummary(BaseModel):
     full_name: str
     role: str
     institution_id: uuid.UUID
+    is_active: bool = True
 
 
 class TokenResponse(BaseModel):

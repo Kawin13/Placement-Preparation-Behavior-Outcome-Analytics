@@ -6,6 +6,7 @@ export interface UserSummary {
   full_name: string;
   role: string;
   institution_id: string;
+  is_active?: boolean;
 }
 
 export interface TokenResponse {

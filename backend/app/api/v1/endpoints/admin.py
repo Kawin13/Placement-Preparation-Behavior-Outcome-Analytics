@@ -1,8 +1,11 @@
 import csv
+from datetime import date, datetime, timezone
 import io
 import re
 from typing import List, Optional
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
@@ -27,6 +30,19 @@ from app.schemas.student import (
     BatchStudentImportCommitRequest,
     BatchStudentImportCommitResponse,
     BatchStudentImportRow,
+)
+from app.schemas.intelligence import (
+    CollegeIntelligenceOverview,
+    UserStatusUpdateRequest,
+    UserRoleUpdateRequest,
+    ContentBankSummary,
+    StudentCohortAssignmentRequest,
+    StudentCohortAssignmentResponse,
+)
+from app.services.intelligence import (
+    get_college_intelligence_overview,
+    export_college_intelligence_csv,
+    get_content_bank_summary,
 )
 
 router = APIRouter()
@@ -93,19 +109,113 @@ def create_staff_user(
     response_model=List[UserSummary],
     status_code=status.HTTP_200_OK,
     summary="List Institutional Users",
-    description="Lists all users enrolled within the administrator's institution."
+    description="Lists all users enrolled within the administrator's institution with optional filtering and pagination."
 )
 def list_institution_users(
+    role: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    search: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
     current_admin: User = Depends(require_roles(["ADMIN"])),
     db: Session = Depends(get_db),
 ) -> List[UserSummary]:
-    users = (
-        db.query(User)
-        .filter(User.institution_id == current_admin.institution_id)
-        .order_by(User.created_at.desc())
-        .all()
-    )
+    query = db.query(User).filter(User.institution_id == current_admin.institution_id)
+    if role:
+        query = query.filter(User.role == role)
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+    if search:
+        search_pattern = f"%{search.strip().lower()}%"
+        query = query.filter(
+            func.lower(User.email).like(search_pattern) | func.lower(User.full_name).like(search_pattern)
+        )
+    users = query.order_by(User.created_at.desc()).offset(offset).limit(min(limit, 500)).all()
     return [UserSummary.model_validate(u) for u in users]
+
+
+@router.put(
+    "/users/{user_id}/status",
+    response_model=UserSummary,
+    status_code=status.HTTP_200_OK,
+    summary="Update User Active Status",
+    description="Allows administrators to activate or deactivate a user account within the institution."
+)
+def update_user_status(
+    user_id: uuid.UUID,
+    payload: UserStatusUpdateRequest,
+    request: Request,
+    current_admin: User = Depends(require_roles(["ADMIN"])),
+    db: Session = Depends(get_db),
+) -> UserSummary:
+    client_ip = get_client_ip(request)
+    target = db.query(User).filter(
+        User.id == user_id,
+        User.institution_id == current_admin.institution_id,
+    ).first()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if target.id == current_admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Administrators cannot deactivate their own account")
+
+    old_status = target.is_active
+    target.is_active = payload.is_active
+    db.commit()
+    db.refresh(target)
+
+    AuditService.record_event(
+        db=db,
+        institution_id=current_admin.institution_id,
+        actor_user_id=current_admin.id,
+        action="USER_STATUS_UPDATED",
+        entity_type="User",
+        entity_id=str(target.id),
+        ip_address=client_ip,
+        details_json={"old_status": old_status, "new_status": target.is_active, "target_email": target.email},
+    )
+    return UserSummary.model_validate(target)
+
+
+@router.put(
+    "/users/{user_id}/role",
+    response_model=UserSummary,
+    status_code=status.HTTP_200_OK,
+    summary="Update User Staff Role",
+    description="Promotes or updates a user's role within the institution."
+)
+def update_user_role(
+    user_id: uuid.UUID,
+    payload: UserRoleUpdateRequest,
+    request: Request,
+    current_admin: User = Depends(require_roles(["ADMIN"])),
+    db: Session = Depends(get_db),
+) -> UserSummary:
+    client_ip = get_client_ip(request)
+    target = db.query(User).filter(
+        User.id == user_id,
+        User.institution_id == current_admin.institution_id,
+    ).first()
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if target.id == current_admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Administrators cannot modify their own role")
+
+    old_role = target.role
+    target.role = payload.role
+    db.commit()
+    db.refresh(target)
+
+    AuditService.record_event(
+        db=db,
+        institution_id=current_admin.institution_id,
+        actor_user_id=current_admin.id,
+        action="USER_ROLE_UPDATED",
+        entity_type="User",
+        entity_id=str(target.id),
+        ip_address=client_ip,
+        details_json={"old_role": old_role, "new_role": target.role, "target_email": target.email},
+    )
+    return UserSummary.model_validate(target)
 
 
 @router.post(
@@ -236,6 +346,66 @@ def list_cohorts(
     return [CohortResponse.model_validate(c) for c in cohorts]
 
 
+@router.post(
+    "/cohorts/{cohort_id}/assign-students",
+    response_model=StudentCohortAssignmentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Assign Students to Cohort",
+    description="Maps a batch of students to an academic cohort."
+)
+def assign_students_to_cohort(
+    cohort_id: uuid.UUID,
+    payload: StudentCohortAssignmentRequest,
+    request: Request,
+    current_admin: User = Depends(require_roles(["ADMIN"])),
+    db: Session = Depends(get_db),
+) -> StudentCohortAssignmentResponse:
+    client_ip = get_client_ip(request)
+    cohort = (
+        db.query(Cohort)
+        .join(Department)
+        .filter(
+            Cohort.id == cohort_id,
+            Department.institution_id == current_admin.institution_id,
+        )
+        .first()
+    )
+    if not cohort:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cohort not found")
+
+    assigned_count = 0
+    errors = []
+    for uid in payload.user_ids:
+        prof = (
+            db.query(StudentProfile)
+            .join(User, StudentProfile.user_id == User.id)
+            .filter(
+                StudentProfile.user_id == uid,
+                User.institution_id == current_admin.institution_id,
+            )
+            .first()
+        )
+        if not prof:
+            errors.append(f"Student profile not found for user {uid}")
+            continue
+        prof.cohort_id = cohort.id
+        assigned_count += 1
+
+    db.commit()
+
+    AuditService.record_event(
+        db=db,
+        institution_id=current_admin.institution_id,
+        actor_user_id=current_admin.id,
+        action="COHORT_STUDENTS_ASSIGNED",
+        entity_type="Cohort",
+        entity_id=str(cohort.id),
+        ip_address=client_ip,
+        details_json={"cohort_id": str(cohort.id), "assigned_count": assigned_count},
+    )
+    return StudentCohortAssignmentResponse(assigned_count=assigned_count, cohort_id=cohort.id, errors=errors)
+
+
 @router.get(
     "/audit-logs",
     response_model=List[AuditLogResponse],
@@ -244,18 +414,131 @@ def list_cohorts(
     description="Accesses the immutable audit logs for the authenticated administrator's institution."
 )
 def get_audit_logs(
+    action: Optional[str] = None,
+    entity_type: Optional[str] = None,
     limit: int = 50,
+    offset: int = 0,
     current_admin: User = Depends(require_roles(["ADMIN"])),
     db: Session = Depends(get_db),
 ) -> List[AuditLogResponse]:
+    query = db.query(AuditLog).filter(AuditLog.institution_id == current_admin.institution_id)
+    if action:
+        query = query.filter(AuditLog.action == action)
+    if entity_type:
+        query = query.filter(AuditLog.entity_type == entity_type)
+
+    logs = (
+        query.order_by(AuditLog.created_at.desc())
+        .offset(offset)
+        .limit(min(limit, 200))
+        .all()
+    )
+    return [AuditLogResponse.model_validate(l) for l in logs]
+
+
+@router.get(
+    "/audit-logs/export/csv",
+    response_class=PlainTextResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Export Security Audit Logs CSV",
+    description="Exports the immutable audit trail for the administrator's institution as CSV."
+)
+def export_audit_logs_csv(
+    current_admin: User = Depends(require_roles(["ADMIN"])),
+    db: Session = Depends(get_db),
+) -> PlainTextResponse:
     logs = (
         db.query(AuditLog)
         .filter(AuditLog.institution_id == current_admin.institution_id)
         .order_by(AuditLog.created_at.desc())
-        .limit(min(limit, 100))
+        .limit(1000)
         .all()
     )
-    return [AuditLogResponse.model_validate(l) for l in logs]
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Timestamp (UTC)", "Action", "Entity Type", "Entity ID", "Actor ID", "IP Address", "Details JSON"])
+    for l in logs:
+        writer.writerow([
+            l.created_at.strftime("%Y-%m-%d %H:%M:%S") if l.created_at else "",
+            l.action,
+            l.entity_type,
+            l.entity_id or "",
+            str(l.actor_user_id) if l.actor_user_id else "SYSTEM",
+            l.ip_address or "",
+            str(l.details_json) if l.details_json else "",
+        ])
+    filename = f"audit_trail_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    return PlainTextResponse(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get(
+    "/intelligence/overview",
+    response_model=CollegeIntelligenceOverview,
+    status_code=status.HTTP_200_OK,
+    summary="Institutional Intelligence Executive Overview",
+    description="Returns the 4-pillar institutional analytics dossier with small-cell privacy suppression."
+)
+def get_institutional_overview(
+    department_id: Optional[uuid.UUID] = None,
+    cohort_id: Optional[uuid.UUID] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    current_user: User = Depends(require_roles(["ADMIN", "PLACEMENT_OFFICER", "TRAINER"])),
+    db: Session = Depends(get_db),
+) -> CollegeIntelligenceOverview:
+    return get_college_intelligence_overview(
+        db=db,
+        actor=current_user,
+        department_id=department_id,
+        cohort_id=cohort_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+@router.get(
+    "/intelligence/export/csv",
+    response_class=PlainTextResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Export Institutional Intelligence CSV",
+    description="Generates an audit-logged CSV summary report of institutional intelligence metrics."
+)
+def export_intelligence_csv(
+    department_id: Optional[uuid.UUID] = None,
+    cohort_id: Optional[uuid.UUID] = None,
+    current_user: User = Depends(require_roles(["ADMIN", "PLACEMENT_OFFICER"])),
+    db: Session = Depends(get_db),
+) -> PlainTextResponse:
+    csv_content = export_college_intelligence_csv(
+        db=db,
+        actor=current_user,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
+    filename = f"college_intelligence_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    return PlainTextResponse(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get(
+    "/content/summary",
+    response_model=ContentBankSummary,
+    status_code=status.HTTP_200_OK,
+    summary="Content & Assessment Bank Summary",
+    description="Returns question count, assessment count, and attempt volume across academic domains."
+)
+def get_content_summary(
+    current_user: User = Depends(require_roles(["ADMIN", "TRAINER", "PLACEMENT_OFFICER"])),
+    db: Session = Depends(get_db),
+) -> ContentBankSummary:
+    return get_content_bank_summary(db=db, actor=current_user)
 
 
 # ---------------------------------------------------------------------------
