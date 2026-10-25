@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas: #FAF6ED;
+    --canvas-contrast: #292444;
+    --surface: #FFFFFF;
+    --border: #E8E0D2;
+    --primary: #FF5B3D;
+    --navy: #292444;
+  }
+
+  body {
+    background-color: #FAF6ED;
+    color: #292444;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    color: #292444;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom scrollbars matching warm palette */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF6ED;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8E0D2;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D5CBBA;
+}
