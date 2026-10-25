@@ -7,8 +7,8 @@ import type { UserSummary } from '../../services/auth';
 export interface NavbarProps {
   systemStatus?: 'connected' | 'checking' | 'error';
   currentUser?: UserSummary | null;
-  currentView?: 'workspace' | 'practice' | 'mistakes' | 'catalog' | 'analytics' | 'cohort-analytics';
-  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'catalog' | 'analytics' | 'cohort-analytics') => void;
+  currentView?: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog';
+  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog') => void;
   onStartPractice?: () => void;
   onSignIn?: () => void;
   onSignOut?: () => void;
@@ -84,6 +84,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               Skill Analytics
+            </button>
+            {/* Role Readiness Tab */}
+            <button
+              onClick={() => onViewChange?.('readiness')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                currentView === 'readiness'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              <span>Role Readiness</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5B3D]" />
             </button>
             {/* Institutional Cohort Analytics Tab for Staff / Trainers / Admins */}
             {currentUser.role !== 'STUDENT' && (

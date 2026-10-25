@@ -1,5 +1,15 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, admin, student, institutions, practice, analytics
+from app.api.v1.endpoints import (
+    health,
+    auth,
+    admin,
+    student,
+    institutions,
+    practice,
+    analytics,
+    readiness,
+    coach,
+)
 
 api_router = APIRouter()
 
@@ -23,3 +33,9 @@ api_router.include_router(practice.router, prefix="/practice", tags=["Practice E
 
 # Behaviour & Performance Analytics
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics & Skill Gaps"])
+
+# Role-Specific Readiness Intelligence
+api_router.include_router(readiness.router, prefix="/readiness", tags=["Role Readiness"])
+
+# AI Learning Coach & Grounded Pedagogical Mentor
+api_router.include_router(coach.router, prefix="/coach", tags=["AI Learning Coach"])

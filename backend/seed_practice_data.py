@@ -52,6 +52,26 @@ def seed_practice_banks():
             db.add(skill_verbal)
             db.flush()
 
+        skill_prog = db.query(Skill).filter(Skill.domain == "PROGRAMMING", Skill.name == "Algorithms & Data Structures").first()
+        if not skill_prog:
+            skill_prog = Skill(
+                name="Algorithms & Data Structures",
+                domain="PROGRAMMING",
+                description="Time complexity, recursion, dynamic programming, stacks, queues, and tree structures.",
+            )
+            db.add(skill_prog)
+            db.flush()
+
+        skill_sql = db.query(Skill).filter(Skill.domain == "SQL", Skill.name == "Relational Queries & SQL").first()
+        if not skill_sql:
+            skill_sql = Skill(
+                name="Relational Queries & SQL",
+                domain="SQL",
+                description="Relational schema, aggregations, anti-joins, window functions, and set operations.",
+            )
+            db.add(skill_sql)
+            db.flush()
+
         # -------------------------------------------------------------
         # Curated Questions: Quantitative Aptitude
         # -------------------------------------------------------------
@@ -250,6 +270,138 @@ def seed_practice_banks():
             },
         ]
 
+        # -------------------------------------------------------------
+        # Curated Questions: Programming & Data Structures
+        # -------------------------------------------------------------
+        prog_questions_data = [
+            {
+                "title": "Time Complexity: Recursive Divide-and-Conquer",
+                "content": "Given the recurrence relation T(n) = 2T(n/2) + O(n), what is the asymptotic worst-case time complexity by the Master Theorem?",
+                "difficulty": "MEDIUM",
+                "explanation": "By Case 2 of the Master Theorem: a=2, b=2, log_b(a) = log_2(2) = 1. Since f(n) = Theta(n^1), T(n) = Theta(n log n).",
+                "options": [
+                    {"text": "O(n log n)", "is_correct": True, "feedback": "Correct. Matches Master Theorem Case 2 where f(n) = Theta(n^(log_b a))."},
+                    {"text": "O(n^2)", "is_correct": False, "feedback": "Incorrect. O(n^2) would apply if work per step was quadratic."},
+                    {"text": "O(n)", "is_correct": False, "feedback": "Incorrect. O(n) would apply if a < b (e.g., T(n/2) + O(n))."},
+                    {"text": "O(log n)", "is_correct": False, "feedback": "Incorrect. Fails to account for O(n) merge work across levels."},
+                ],
+            },
+            {
+                "title": "Data Structures: Minimum Stack Operations",
+                "content": "What is the optimal time and auxiliary space complexity to implement a Stack supporting push(), pop(), and getMin() operations?",
+                "difficulty": "EASY",
+                "explanation": "Using an auxiliary stack or value encoding (2x - min), all three operations (push, pop, getMin) can be executed in O(1) worst-case time with O(n) auxiliary space.",
+                "options": [
+                    {"text": "O(1) time and O(n) space", "is_correct": True, "feedback": "Correct. Auxiliary stack or difference tracking achieves O(1) time across all operations with linear space."},
+                    {"text": "O(log n) time and O(1) space", "is_correct": False, "feedback": "Incorrect. Logarithmic time is unnecessary and space cannot be O(1) without bounds."},
+                    {"text": "O(n) time and O(1) space", "is_correct": False, "feedback": "Incorrect. O(n) getMin() defeats the purpose of an optimized min-stack."},
+                    {"text": "O(1) time and O(1) space", "is_correct": False, "feedback": "Incorrect. Storing n elements requires at least O(n) total space."},
+                ],
+            },
+            {
+                "title": "Binary Search Tree: Inorder Traversal Property",
+                "content": "Performing an Inorder traversal (Left, Root, Right) on any valid Binary Search Tree (BST) without duplicate keys yields:",
+                "difficulty": "EASY",
+                "explanation": "In a BST, all keys in the left subtree are strictly less than the root, and all keys in the right subtree are strictly greater. Inorder traversal visits left, root, right, producing keys in strictly ascending sorted order.",
+                "options": [
+                    {"text": "Keys in strictly ascending sorted order", "is_correct": True, "feedback": "Correct. By BST invariant, Left < Root < Right yields sorted non-decreasing sequence."},
+                    {"text": "Keys in level-order breadth-first order", "is_correct": False, "feedback": "Incorrect. Level-order requires a queue, not an inorder DFS traversal."},
+                    {"text": "Keys in reverse topological order", "is_correct": False, "feedback": "Incorrect. Reversed order corresponds to Right-Root-Left traversal."},
+                    {"text": "Keys grouped by subtree height", "is_correct": False, "feedback": "Incorrect. Inorder traversal is independent of node height."},
+                ],
+            },
+            {
+                "title": "Graph Theory: Cycle Detection in Directed Graphs",
+                "content": "Which algorithmic approach detects cycles in a directed graph in linear O(V + E) time?",
+                "difficulty": "MEDIUM",
+                "explanation": "Depth-First Search (DFS) with a 3-color vertex marking scheme (White = unvisited, Gray = visiting / on recursion stack, Black = completely visited). Detecting a Gray vertex during traversal indicates a back-edge and hence a directed cycle.",
+                "options": [
+                    {"text": "DFS with recursion stack (3-color back-edge detection)", "is_correct": True, "feedback": "Correct. A back-edge to an active vertex on the recursion stack proves a cycle in O(V + E)."},
+                    {"text": "Dijkstra's Shortest Path Algorithm", "is_correct": False, "feedback": "Incorrect. Dijkstra finds shortest paths and does not directly classify cycle back-edges."},
+                    {"text": "Kruskal's Disjoint Set Union without path compression", "is_correct": False, "feedback": "Incorrect. Kruskal applies to undirected minimum spanning trees."},
+                    {"text": "Prim's Minimum Spanning Tree traversal", "is_correct": False, "feedback": "Incorrect. Prim builds undirected trees, not directed cycle classification."},
+                ],
+            },
+            {
+                "title": "Dynamic Programming: 0/1 Knapsack Subproblem State",
+                "content": "In the standard bottom-up dynamic programming table dp[i][w] for the 0/1 Knapsack problem with n items and capacity W, what does dp[i][w] represent?",
+                "difficulty": "HARD",
+                "explanation": "Step 1: In 0/1 Knapsack, dp[i][w] denotes the maximum value achievable considering a subset of the first i items with total weight at most w.\nStep 2: State transition: dp[i][w] = max(dp[i-1][w], val[i] + dp[i-1][w - wt[i]]) if wt[i] <= w.",
+                "options": [
+                    {"text": "Maximum value obtainable considering the first i items with weight limit w", "is_correct": True, "feedback": "Correct. Represents optimal value bounded by subset prefix i and current capacity w."},
+                    {"text": "Minimum weight required to obtain value exactly w using i items", "is_correct": False, "feedback": "Incorrect. That defines the dual unbounded problem, not standard knapsack."},
+                    {"text": "Total number of combinations to fill exactly capacity w", "is_correct": False, "feedback": "Incorrect. Counting combinations corresponds to coin change combination counting."},
+                    {"text": "Optimal profit ratio of remaining unassigned items", "is_correct": False, "feedback": "Incorrect. DP state tracks scalar total value, not fractional ratios."},
+                ],
+            },
+        ]
+
+        # -------------------------------------------------------------
+        # Curated Questions: Relational Queries & SQL
+        # -------------------------------------------------------------
+        sql_questions_data = [
+            {
+                "title": "SQL Anti-Join: Identifying Unmatched Records",
+                "content": "To retrieve all employees from the employees table who have never been assigned any projects in the project_assignments table, which SQL pattern is standard and optimal?",
+                "difficulty": "MEDIUM",
+                "explanation": "A LEFT JOIN from employees to project_assignments on employee_id, coupled with a WHERE project_assignments.employee_id IS NULL clause, efficiently identifies unassigned records (anti-join pattern).",
+                "options": [
+                    {"text": "LEFT JOIN on employee_id WHERE project_assignments.employee_id IS NULL", "is_correct": True, "feedback": "Correct. Preserves all employees and filters for unmatched NULL foreign keys."},
+                    {"text": "INNER JOIN on employee_id WHERE project_assignments.project_id = 0", "is_correct": False, "feedback": "Incorrect. Unassigned employees have no corresponding rows, so inner join eliminates them."},
+                    {"text": "CROSS JOIN on employee_id GROUP BY project_id HAVING COUNT(*) = 0", "is_correct": False, "feedback": "Incorrect. Cross joins generate cartesian products and cannot filter unassigned keys."},
+                    {"text": "FULL OUTER JOIN on employee_id WHERE employees.employee_id IS NULL", "is_correct": False, "feedback": "Incorrect. This filters for missing employees instead of missing assignments."},
+                ],
+            },
+            {
+                "title": "Aggregations: WHERE vs HAVING Clause",
+                "content": "In SQL, what is the fundamental functional difference between the WHERE clause and the HAVING clause?",
+                "difficulty": "EASY",
+                "explanation": "The WHERE clause filters rows before aggregation occurs, whereas the HAVING clause filters aggregated group results produced by GROUP BY.",
+                "options": [
+                    {"text": "WHERE filters raw rows prior to aggregation; HAVING filters aggregated groups", "is_correct": True, "feedback": "Correct. WHERE operates on individual tuples; HAVING evaluates aggregate functions like COUNT/AVG."},
+                    {"text": "WHERE applies only to subqueries; HAVING applies only to joins", "is_correct": False, "feedback": "Incorrect. Both can be applied across joined or subquery result sets."},
+                    {"text": "WHERE cannot contain comparison operators; HAVING requires regex", "is_correct": False, "feedback": "Incorrect. Both accept standard SQL predicates and comparison operators."},
+                    {"text": "HAVING is mandatory for all SELECT statements with multiple columns", "is_correct": False, "feedback": "Incorrect. HAVING is only required when filtering grouped aggregate expressions."},
+                ],
+            },
+            {
+                "title": "Relational Operations: UNION vs UNION ALL",
+                "content": "When combining result sets from two SELECT statements with identical schemas, what is the key behavioral and performance distinction of UNION ALL compared to UNION?",
+                "difficulty": "EASY",
+                "explanation": "UNION performs an implicit DISTINCT sort operation to eliminate duplicate rows across both result sets. UNION ALL concatenates both sets directly without deduplication, executing faster.",
+                "options": [
+                    {"text": "UNION ALL preserves duplicate rows and executes faster without sort-deduplication", "is_correct": True, "feedback": "Correct. UNION ALL avoids the overhead of sorting and deduplicating rows."},
+                    {"text": "UNION ALL rejects mismatched data types while UNION automatically coerces them", "is_correct": False, "feedback": "Incorrect. Both require union-compatible column types."},
+                    {"text": "UNION preserves duplicates while UNION ALL keeps only unique tuples", "is_correct": False, "feedback": "Incorrect. The behavior is inverted; UNION deduplicates, UNION ALL preserves."},
+                    {"text": "UNION ALL is restricted to single-table queries only", "is_correct": False, "feedback": "Incorrect. Both can combine arbitrary compatible queries."},
+                ],
+            },
+            {
+                "title": "Window Functions: DENSE_RANK vs RANK",
+                "content": "Given scores [100, 90, 90, 80], what ranks are assigned to these four rows respectively by DENSE_RANK() vs RANK() ordered by score DESC?",
+                "difficulty": "MEDIUM",
+                "explanation": "For ties: RANK() assigns tied rows the same rank and skips subsequent numbers: [1, 2, 2, 4]. DENSE_RANK() assigns tied rows the same rank without gaps: [1, 2, 2, 3].",
+                "options": [
+                    {"text": "DENSE_RANK: 1, 2, 2, 3 | RANK: 1, 2, 2, 4", "is_correct": True, "feedback": "Correct. DENSE_RANK does not skip ranks after ties, whereas RANK leaves gaps for tied elements."},
+                    {"text": "DENSE_RANK: 1, 2, 3, 4 | RANK: 1, 2, 2, 3", "is_correct": False, "feedback": "Incorrect. DENSE_RANK assigns the same rank to identical scores."},
+                    {"text": "DENSE_RANK: 1, 2, 2, 4 | RANK: 1, 2, 2, 3", "is_correct": False, "feedback": "Incorrect. Inverted ranking behavior."},
+                    {"text": "DENSE_RANK: 1, 1, 2, 3 | RANK: 1, 2, 3, 4", "is_correct": False, "feedback": "Incorrect. Rank starts at 1 for the highest score 100."},
+                ],
+            },
+            {
+                "title": "Null Handling: COUNT(column) vs COUNT(*)",
+                "content": "In an employee table with 10 rows, where 2 rows have a NULL value in the bonus column, what are the outputs of SELECT COUNT(*), COUNT(bonus) FROM employees?",
+                "difficulty": "MEDIUM",
+                "explanation": "COUNT(*) counts the total number of rows in the table (10). COUNT(column_name) counts non-NULL values only in the specified column (10 - 2 = 8).",
+                "options": [
+                    {"text": "COUNT(*) = 10, COUNT(bonus) = 8", "is_correct": True, "feedback": "Correct. COUNT(*) counts all rows; COUNT(column) ignores NULL entries."},
+                    {"text": "COUNT(*) = 10, COUNT(bonus) = 10", "is_correct": False, "feedback": "Incorrect. COUNT(column) excludes NULL values."},
+                    {"text": "COUNT(*) = 8, COUNT(bonus) = 8", "is_correct": False, "feedback": "Incorrect. COUNT(*) includes all 10 tuples regardless of column NULLs."},
+                    {"text": "COUNT(*) = 10, COUNT(bonus) = NULL", "is_correct": False, "feedback": "Incorrect. COUNT never returns NULL; it returns 0 if all values are NULL."},
+                ],
+            },
+        ]
+
         def ingest_set(skill, questions_data):
             q_ids = []
             for item in questions_data:
@@ -289,6 +441,12 @@ def seed_practice_banks():
         print("Ingesting Verbal Ability questions...")
         verbal_ids = ingest_set(skill_verbal, verbal_questions_data)
 
+        print("Ingesting Programming & DSA questions...")
+        prog_ids = ingest_set(skill_prog, prog_questions_data)
+
+        print("Ingesting SQL questions...")
+        sql_ids = ingest_set(skill_sql, sql_questions_data)
+
         # -------------------------------------------------------------
         # Published Assessments
         # -------------------------------------------------------------
@@ -319,6 +477,24 @@ def seed_practice_banks():
                 "duration": 15,
                 "passing": 3.0,
                 "question_ids": verbal_ids,
+            },
+            {
+                "title": "Programming & DSA Diagnostic: Algorithms & Complexity",
+                "desc": "Technical recruitment diagnostic evaluating recurrence relations, dynamic programming, stacks, and tree invariants.",
+                "instructions": "5 algorithmic questions designed to benchmark core software engineering fundamentals. Step-by-step proofs provided upon submission.",
+                "category": "PROGRAMMING_DSA",
+                "duration": 15,
+                "passing": 3.0,
+                "question_ids": prog_ids,
+            },
+            {
+                "title": "SQL & Relational Logic Diagnostic: Aggregations & Joins",
+                "desc": "Database querying diagnostic testing anti-joins, aggregation predicates, set operations, and ranking window functions.",
+                "instructions": "5 SQL questions assessing relational problem solving. Immediate distractor feedback available post-submission.",
+                "category": "SQL_DATABASE",
+                "duration": 15,
+                "passing": 3.0,
+                "question_ids": sql_ids,
             },
         ]
 

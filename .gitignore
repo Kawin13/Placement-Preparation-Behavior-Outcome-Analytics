@@ -54,3 +54,6 @@ htmlcov/
 Thumbs.db
 [Dd]esktop.ini
 $RECYCLE.BIN/
+.playwright-mcp/
+*.png
+

@@ -20,6 +20,13 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/placement_portal"
 
+    # AI Learning Coach (Optional External Provider Configuration)
+    AI_PROVIDER: str = "gemini"  # "gemini" | "offline"
+    GEMINI_API_KEY: Union[str, None] = None
+    AI_API_KEY: Union[str, None] = None
+    AI_MODEL_NAME: str = "gemini-1.5-flash"
+    AI_TIMEOUT_SECONDS: int = 8
+
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

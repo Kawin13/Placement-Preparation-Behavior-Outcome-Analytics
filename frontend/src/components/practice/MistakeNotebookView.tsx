@@ -13,9 +13,19 @@ import {
   FileEdit,
   Save,
   Check,
+  Sparkles,
 } from 'lucide-react';
 
-export function MistakeNotebookView() {
+export interface MistakeNotebookViewProps {
+  onAskCoach?: (questionContext: {
+    questionId: string;
+    questionTitle: string;
+    studentNotes?: string | null;
+    errorTag?: string | null;
+  }) => void;
+}
+
+export function MistakeNotebookView({ onAskCoach }: MistakeNotebookViewProps = {}) {
   const [mistakes, setMistakes] = useState<MistakeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,6 +213,24 @@ export function MistakeNotebookView() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
+                    {onAskCoach && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onAskCoach({
+                            questionId: m.question_id,
+                            questionTitle: m.question_title,
+                            studentNotes: m.student_notes,
+                            errorTag: m.error_tag,
+                          })
+                        }
+                        className="text-xs text-[#292444] hover:border-[#FF5B3D]/50"
+                        leftIcon={<Sparkles className="w-3.5 h-3.5 text-[#FF5B3D]" />}
+                      >
+                        Ask AI Coach
+                      </Button>
+                    )}
                     {m.mastery_status !== 'MASTERED' ? (
                       <Button
                         variant="secondary"

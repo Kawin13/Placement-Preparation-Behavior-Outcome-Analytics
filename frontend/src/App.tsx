@@ -12,6 +12,8 @@ import { PracticeResultsDrawer } from './components/practice/PracticeResultsDraw
 import { MistakeNotebookView } from './components/practice/MistakeNotebookView';
 import { StudentAnalyticsView } from './components/analytics/StudentAnalyticsView';
 import { CohortAnalyticsView } from './components/analytics/CohortAnalyticsView';
+import { RoleReadinessView } from './components/readiness/RoleReadinessView';
+import { AICoachModal } from './components/coach/AICoachModal';
 import { fetchHealthTelemetry, type HealthData } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -47,9 +49,19 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'analytics' | 'cohort-analytics' | 'catalog'>('workspace');
+  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'analytics' | 'readiness' | 'cohort-analytics' | 'catalog'>('workspace');
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
+
+  // AI Coach and Role Readiness modal state
+  const [isCoachModalOpen, setIsCoachModalOpen] = useState<boolean>(false);
+  const [coachTargetRoleId, setCoachTargetRoleId] = useState<string>('SDE');
+  const [coachQuestionContext, setCoachQuestionContext] = useState<{
+    questionId: string;
+    questionTitle?: string;
+    studentNotes?: string | null;
+    errorTag?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     // Check local storage for existing session
@@ -315,9 +327,23 @@ export function App() {
             onGoToMistakes={() => setViewMode('mistakes')}
           />
         ) : currentUser && viewMode === 'mistakes' ? (
-          <MistakeNotebookView />
+          <MistakeNotebookView
+            onAskCoach={(ctx) => {
+              setCoachQuestionContext(ctx);
+              setIsCoachModalOpen(true);
+            }}
+          />
         ) : currentUser && viewMode === 'analytics' ? (
           <StudentAnalyticsView />
+        ) : currentUser && viewMode === 'readiness' ? (
+          <RoleReadinessView
+            onSelectAssessment={(assessmentId) => handleStartSession(assessmentId, 'PRACTICE')}
+            onOpenCoachModal={(roleId) => {
+              setCoachTargetRoleId(roleId);
+              setCoachQuestionContext(null);
+              setIsCoachModalOpen(true);
+            }}
+          />
         ) : currentUser && viewMode === 'cohort-analytics' ? (
           <CohortAnalyticsView />
         ) : (
@@ -555,6 +581,15 @@ export function App() {
         initialMode={authMode}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* Grounded AI Learning Coach Modal */}
+      <AICoachModal
+        isOpen={isCoachModalOpen}
+        onClose={() => setIsCoachModalOpen(false)}
+        questionContext={coachQuestionContext}
+        targetRoleId={coachTargetRoleId}
+        onLaunchAssessment={(assessmentId) => handleStartSession(assessmentId, 'PRACTICE')}
       />
 
       {/* Module Selection Dialog / Drawer */}
