@@ -14,6 +14,13 @@ from app.models.practice import (
 from app.models.placement import PlacementOutcome
 from app.models.training import TrainingProgram, TrainingSession, TrainingAttendance
 from app.models.audit import AuditLog
+from app.models.dsa import (
+    DSATopic,
+    DSAProblem,
+    DSATestCase,
+    DSASubmission,
+    DSAUserProgress,
+)
 
 __all__ = [
     "Base",
@@ -38,4 +45,9 @@ __all__ = [
     "TrainingSession",
     "TrainingAttendance",
     "AuditLog",
+    "DSATopic",
+    "DSAProblem",
+    "DSATestCase",
+    "DSASubmission",
+    "DSAUserProgress",
 ]

@@ -15,6 +15,7 @@ import {
   X,
   Sparkles,
   ChevronRight,
+  Code2,
 } from 'lucide-react';
 import { Button } from '../common/Button';
 import type { UserSummary } from '../../services/auth';
@@ -22,6 +23,7 @@ import type { UserSummary } from '../../services/auth';
 export type ViewMode =
   | 'workspace'
   | 'practice'
+  | 'dsa'
   | 'running'
   | 'results'
   | 'mistakes'
@@ -87,6 +89,12 @@ export const AppShell: React.FC<AppShellProps> = ({
           icon: <Brain className="w-4 h-4 shrink-0" />,
         },
         {
+          id: 'dsa',
+          label: 'DSA Studio',
+          icon: <Code2 className="w-4 h-4 shrink-0" />,
+          badge: 'Judge',
+        },
+        {
           id: 'mistakes',
           label: 'Mistake Notebook',
           icon: <BookOpen className="w-4 h-4 shrink-0" />,
@@ -135,6 +143,12 @@ export const AppShell: React.FC<AppShellProps> = ({
           id: 'practice',
           label: 'Practice Bank',
           icon: <Brain className="w-4 h-4 shrink-0" />,
+        },
+        {
+          id: 'dsa',
+          label: 'DSA Studio',
+          icon: <Code2 className="w-4 h-4 shrink-0" />,
+          badge: 'Judge',
         },
         {
           id: 'catalog',
@@ -195,6 +209,12 @@ export const AppShell: React.FC<AppShellProps> = ({
         id: 'practice',
         label: 'Assessment Catalog',
         icon: <Brain className="w-4 h-4 shrink-0" />,
+      },
+      {
+        id: 'dsa',
+        label: 'DSA Studio',
+        icon: <Code2 className="w-4 h-4 shrink-0" />,
+        badge: 'Judge',
       },
       {
         id: 'catalog',

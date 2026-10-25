@@ -39,6 +39,8 @@ import { TrainingEffectivenessView } from './components/training/TrainingEffecti
 import { CollegeIntelligenceView } from './components/admin/CollegeIntelligenceView';
 import { AppShell, type ViewMode } from './components/layout/AppShell';
 import { LearningResourcesView } from './components/catalog/LearningResourcesView';
+import { DSAProblemListView } from './components/dsa/DSAProblemListView';
+import { DSACodingWorkspace } from './components/dsa/DSACodingWorkspace';
 import { fetchHealthTelemetry } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -57,6 +59,7 @@ export function App() {
   const [viewMode, setViewMode] = useState<
     | 'workspace'
     | 'practice'
+    | 'dsa'
     | 'running'
     | 'results'
     | 'mistakes'
@@ -68,6 +71,9 @@ export function App() {
     | 'admin'
     | 'catalog'
   >('workspace');
+
+  // Selected DSA Problem Slug
+  const [selectedDsaSlug, setSelectedDsaSlug] = useState<string | null>(null);
 
   // Active Practice Execution State
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -219,12 +225,27 @@ export function App() {
         <AppShell
           currentUser={currentUser}
           currentView={viewMode}
-          onViewChange={(view) => setViewMode(view)}
+          onViewChange={(view) => {
+            if (view !== 'dsa') setSelectedDsaSlug(null);
+            setViewMode(view);
+          }}
           onSignOut={handleSignOut}
           onStartPractice={() => setViewMode('practice')}
         >
           {viewMode === 'workspace' && <StudentWorkspace />}
           {viewMode === 'practice' && <PracticeModuleList onStartSession={handleStartSession} />}
+          {viewMode === 'dsa' && (
+            selectedDsaSlug ? (
+              <DSACodingWorkspace
+                problemSlug={selectedDsaSlug}
+                onBack={() => setSelectedDsaSlug(null)}
+              />
+            ) : (
+              <DSAProblemListView
+                onSelectProblem={(slug) => setSelectedDsaSlug(slug)}
+              />
+            )
+          )}
           {viewMode === 'results' && submitResult && (
             <PracticeResultsDrawer
               result={submitResult}

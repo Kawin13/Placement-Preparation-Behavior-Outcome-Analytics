@@ -11,12 +11,16 @@ from app.api.v1.endpoints import (
     coach,
     placement,
     training,
+    dsa,
 )
 
 api_router = APIRouter()
 
 # Health telemetry
 api_router.include_router(health.router, tags=["Health"])
+
+# DSA Problem-Solving Platform & Online Judge
+api_router.include_router(dsa.router, prefix="/dsa", tags=["DSA Problem Solving & Online Judge"])
 
 # Authentication & lifecycle
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
