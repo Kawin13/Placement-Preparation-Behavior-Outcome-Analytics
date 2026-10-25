@@ -7,8 +7,8 @@ import type { UserSummary } from '../../services/auth';
 export interface NavbarProps {
   systemStatus?: 'connected' | 'checking' | 'error';
   currentUser?: UserSummary | null;
-  currentView?: 'workspace' | 'practice' | 'mistakes' | 'catalog';
-  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'catalog') => void;
+  currentView?: 'workspace' | 'practice' | 'mistakes' | 'catalog' | 'analytics' | 'cohort-analytics';
+  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'catalog' | 'analytics' | 'cohort-analytics') => void;
   onStartPractice?: () => void;
   onSignIn?: () => void;
   onSignOut?: () => void;
@@ -74,6 +74,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Mistake Notebook
             </button>
+            {/* Student Analytics Tab */}
+            <button
+              onClick={() => onViewChange?.('analytics')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'analytics'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Skill Analytics
+            </button>
+            {/* Institutional Cohort Analytics Tab for Staff / Trainers / Admins */}
+            {currentUser.role !== 'STUDENT' && (
+              <button
+                onClick={() => onViewChange?.('cohort-analytics')}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  currentView === 'cohort-analytics'
+                    ? 'text-[#292444] bg-white shadow-xs'
+                    : 'text-[#5E5875] hover:text-[#292444]'
+                }`}
+              >
+                Cohort Telemetry
+              </button>
+            )}
             <button
               onClick={() => onViewChange?.('catalog')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${

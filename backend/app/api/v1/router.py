@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, auth, admin, student, institutions, practice
+from app.api.v1.endpoints import health, auth, admin, student, institutions, practice, analytics
 
 api_router = APIRouter()
 
@@ -20,3 +20,6 @@ api_router.include_router(student.router, prefix="/student", tags=["Student"])
 
 # Assessment Engine & Practice Sessions
 api_router.include_router(practice.router, prefix="/practice", tags=["Practice Engine"])
+
+# Behaviour & Performance Analytics
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics & Skill Gaps"])

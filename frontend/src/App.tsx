@@ -10,6 +10,8 @@ import { PracticeModuleList } from './components/practice/PracticeModuleList';
 import { PracticeRunner } from './components/practice/PracticeRunner';
 import { PracticeResultsDrawer } from './components/practice/PracticeResultsDrawer';
 import { MistakeNotebookView } from './components/practice/MistakeNotebookView';
+import { StudentAnalyticsView } from './components/analytics/StudentAnalyticsView';
+import { CohortAnalyticsView } from './components/analytics/CohortAnalyticsView';
 import { fetchHealthTelemetry, type HealthData } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -34,6 +36,8 @@ import {
   KeyRound,
   UserCheck,
   BookOpen,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 
 export function App() {
@@ -43,7 +47,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'catalog'>('workspace');
+  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'analytics' | 'cohort-analytics' | 'catalog'>('workspace');
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
 
@@ -254,6 +258,32 @@ export function App() {
             </button>
 
             <button
+              onClick={() => setViewMode('analytics')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                viewMode === 'analytics'
+                  ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                  : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Skill Analytics</span>
+            </button>
+
+            {currentUser.role !== 'STUDENT' && (
+              <button
+                onClick={() => setViewMode('cohort-analytics')}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                  viewMode === 'cohort-analytics'
+                    ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                    : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>Cohort Telemetry</span>
+              </button>
+            )}
+
+            <button
               onClick={() => setViewMode('catalog')}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 viewMode === 'catalog'
@@ -286,6 +316,10 @@ export function App() {
           />
         ) : currentUser && viewMode === 'mistakes' ? (
           <MistakeNotebookView />
+        ) : currentUser && viewMode === 'analytics' ? (
+          <StudentAnalyticsView />
+        ) : currentUser && viewMode === 'cohort-analytics' ? (
+          <CohortAnalyticsView />
         ) : (
           <>
             {/* Hero Section */}
