@@ -4,7 +4,13 @@ from app.models.user import User, StudentProfile
 from app.models.skill import Skill
 from app.models.question import Question, QuestionOption, QuestionTestCase
 from app.models.assessment import Assessment, AssessmentQuestion
-from app.models.practice import PracticeSession, AttemptRecord, MistakeNotebookEntry
+from app.models.practice import (
+    PracticeSession,
+    AttemptRecord,
+    MistakeNotebookEntry,
+    PreparationActivity,
+    LearningGoal,
+)
 from app.models.placement import PlacementOutcome
 from app.models.audit import AuditLog
 
@@ -24,6 +30,8 @@ __all__ = [
     "PracticeSession",
     "AttemptRecord",
     "MistakeNotebookEntry",
+    "PreparationActivity",
+    "LearningGoal",
     "PlacementOutcome",
     "AuditLog",
 ]

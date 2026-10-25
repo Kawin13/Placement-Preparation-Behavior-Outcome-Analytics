@@ -5,6 +5,7 @@ import { Card } from './components/common/Card';
 import { Badge } from './components/common/Badge';
 import { EmptyState } from './components/common/EmptyState';
 import { AuthModal } from './components/auth/AuthModal';
+import { StudentWorkspace } from './components/student/StudentWorkspace';
 import { fetchHealthTelemetry, type HealthData } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -32,6 +33,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
+  const [viewMode, setViewMode] = useState<'workspace' | 'catalog'>('workspace');
 
   useEffect(() => {
     // Check local storage for existing session
@@ -177,21 +179,54 @@ export function App() {
           </div>
         )}
 
-        {/* Hero Section */}
-        <div className="relative mb-16 sm:mb-24">
-          <div className="max-w-3xl">
-            {/* Status Pill Badge */}
-            <div className="mb-6 inline-flex">
-              <Badge variant="coral" hasDot>
-                Phase 3 · RBAC, Authentication & Security Active
-              </Badge>
-            </div>
+        {/* View Switcher for Authenticated Students */}
+        {currentUser && (
+          <div className="flex items-center gap-3 mb-8 border-b border-[#E8E0D2] pb-4">
+            <button
+              onClick={() => setViewMode('workspace')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                viewMode === 'workspace'
+                  ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                  : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Preparation Workspace</span>
+            </button>
 
-            {/* Editorial Heading */}
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[#292444] leading-[1.08] mb-6 font-display">
-              Master the placement round. <br />
-              <span className="text-[#FF5B3D]">Practice for real.</span>
-            </h1>
+            <button
+              onClick={() => setViewMode('catalog')}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                viewMode === 'catalog'
+                  ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                  : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+              }`}
+            >
+              <Brain className="w-4 h-4" />
+              <span>Learning Modules & Practice</span>
+            </button>
+          </div>
+        )}
+
+        {currentUser && viewMode === 'workspace' ? (
+          <StudentWorkspace />
+        ) : (
+          <>
+            {/* Hero Section */}
+            <div className="relative mb-16 sm:mb-24">
+              <div className="max-w-3xl">
+                {/* Status Pill Badge */}
+                <div className="mb-6 inline-flex">
+                  <Badge variant="coral" hasDot>
+                    Phase 4 · Student Profiles & Preparation Tracking Active
+                  </Badge>
+                </div>
+
+                {/* Editorial Heading */}
+                <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[#292444] leading-[1.08] mb-6 font-display">
+                  Master the placement round. <br />
+                  <span className="text-[#FF5B3D]">Practice for real.</span>
+                </h1>
 
             {/* Subheading */}
             <p className="text-lg sm:text-xl text-[#5E5875] leading-relaxed mb-8 max-w-2xl font-normal">
@@ -400,6 +435,8 @@ export function App() {
             </Card>
           </div>
         </section>
+        </>
+        )}
       </main>
 
       {/* Authentication Modal Dialog */}

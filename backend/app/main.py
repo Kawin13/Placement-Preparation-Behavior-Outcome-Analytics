@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -50,7 +51,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "error_code": "VALIDATION_ERROR",
             "message": "Input validation failed. Please check your request parameters.",
-            "details": exc.errors(),
+            "details": jsonable_encoder(exc.errors()),
         },
     )
 

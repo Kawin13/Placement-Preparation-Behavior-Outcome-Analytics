@@ -75,3 +75,77 @@ class MistakeNotebookEntry(Base):
             name="chk_mastery_status",
         ),
     )
+
+
+class PreparationActivity(Base):
+    __tablename__ = "preparation_activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_type = Column(String(40), nullable=False)
+    category = Column(String(50), nullable=False)
+    topic = Column(String(150), nullable=False)
+    duration_minutes = Column(Integer, nullable=False)
+    completion_state = Column(String(30), default="COMPLETED", nullable=False)
+    provenance = Column(String(30), default="STUDENT_LOGGED", nullable=False)
+    notes = Column(Text, nullable=True)
+    activity_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="preparation_activities")
+
+    __table_args__ = (
+        CheckConstraint(
+            "activity_type IN ('PRACTICE_SESSION', 'MOCK_TEST', 'CONCEPT_REVISION', 'MISTAKE_REVIEW', 'SELF_STUDY')",
+            name="chk_activity_type",
+        ),
+        CheckConstraint(
+            "category IN ('QUANTITATIVE_APTITUDE', 'LOGICAL_REASONING', 'VERBAL_ABILITY', 'PROGRAMMING', 'SQL', 'CORE_TECHNICAL', 'HR_BEHAVIORAL', 'GENERAL')",
+            name="chk_activity_category",
+        ),
+        CheckConstraint("duration_minutes > 0 AND duration_minutes <= 720", name="chk_activity_duration"),
+        CheckConstraint(
+            "completion_state IN ('COMPLETED', 'IN_PROGRESS', 'ABANDONED')",
+            name="chk_activity_completion_state",
+        ),
+        CheckConstraint(
+            "provenance IN ('STUDENT_LOGGED', 'SYSTEM_EVALUATED')",
+            name="chk_activity_provenance",
+        ),
+    )
+
+
+class LearningGoal(Base):
+    __tablename__ = "learning_goals"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    category = Column(String(50), nullable=False)
+    target_type = Column(String(30), nullable=False)
+    target_value = Column(Numeric(8, 2), nullable=False)
+    current_value = Column(Numeric(8, 2), default=0.00, nullable=False)
+    deadline = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(20), default="IN_PROGRESS", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user = relationship("User", back_populates="learning_goals")
+
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('QUANTITATIVE_APTITUDE', 'LOGICAL_REASONING', 'VERBAL_ABILITY', 'PROGRAMMING', 'SQL', 'CORE_TECHNICAL', 'HR_BEHAVIORAL', 'GENERAL')",
+            name="chk_goal_category",
+        ),
+        CheckConstraint(
+            "target_type IN ('QUESTIONS_COUNT', 'MINUTES_PRACTICED', 'ACCURACY_PERCENT')",
+            name="chk_goal_target_type",
+        ),
+        CheckConstraint("target_value > 0", name="chk_goal_target_value_positive"),
+        CheckConstraint(
+            "status IN ('IN_PROGRESS', 'COMPLETED', 'ARCHIVED')",
+            name="chk_goal_status",
+        ),
+    )
+

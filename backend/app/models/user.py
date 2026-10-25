@@ -25,6 +25,8 @@ class User(Base):
     attempt_records = relationship("AttemptRecord", back_populates="user")
     mistake_entries = relationship("MistakeNotebookEntry", back_populates="user")
     placement_outcomes = relationship("PlacementOutcome", back_populates="user", foreign_keys="PlacementOutcome.user_id")
+    preparation_activities = relationship("PreparationActivity", back_populates="user", cascade="all, delete-orphan")
+    learning_goals = relationship("LearningGoal", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("role IN ('STUDENT', 'TRAINER', 'PLACEMENT_OFFICER', 'ADMIN')", name="chk_user_role"),
