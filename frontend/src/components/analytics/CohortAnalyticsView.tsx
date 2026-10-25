@@ -79,13 +79,13 @@ export function CohortAnalyticsView() {
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Badge variant="warning" className="text-xs uppercase tracking-wider font-semibold">
-                Institutional Department Telemetry
+                Institutional Department Insights
               </Badge>
               <Badge variant="neutral" className="text-xs font-semibold bg-white/10 text-white border-white/20">
-                Staff &amp; Admin RBAC
+                Authorized Staff Access
               </Badge>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Cohort Preparation &amp; Performance Telemetry</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Cohort Preparation &amp; Performance Insights</h1>
             <p className="text-white/80 leading-relaxed text-sm">
               Aggregated from authentic preparation sessions and verified student attempt records.
               Zero synthetic data or simulated numbers. Correlation between preparation and placement outcomes strictly enforces sample-size criteria.
@@ -143,7 +143,7 @@ export function CohortAnalyticsView() {
       {loading ? (
         <div className="py-20 text-center text-[#292444]/60">
           <div className="inline-block w-8 h-8 border-4 border-[#FF5B3D] border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-sm font-medium">Aggregating departmental cohort records from PostgreSQL...</p>
+          <p className="text-sm font-medium">Loading departmental cohort insights...</p>
         </div>
       ) : !analytics ? (
         <Card className="p-12 text-center text-[#292444]/60 bg-white border border-[#E8E0D2] rounded-3xl">
@@ -223,7 +223,7 @@ export function CohortAnalyticsView() {
                   <span className="text-base font-normal text-[#292444]/60">hrs</span>
                 </div>
                 <Badge variant="success" className="text-[10px] font-semibold">
-                  Platform Telemetry
+                  Platform Engagement
                 </Badge>
               </div>
               <p className="text-[11px] text-[#292444]/60 mt-4 pt-3 border-t border-[#E8E0D2]/60">

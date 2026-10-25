@@ -282,19 +282,19 @@ export function StudentWorkspace() {
         </div>
       </Card>
 
-      {/* Verified Telemetry Metrics (Rule 8: Zero Fake Data) */}
+      {/* Verified Preparation Metrics */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#FF5B3D]">
-              Verified Telemetry (Rule 8 Compliant)
+              Verified Preparation Summary
             </span>
             <h3 className="text-lg font-bold text-[#292444] font-display">
               Preparation Standing & Volume
             </h3>
           </div>
           <Badge variant="neutral" hasDot>
-            Live PostgreSQL Aggregation
+            Active Preparation Records
           </Badge>
         </div>
 

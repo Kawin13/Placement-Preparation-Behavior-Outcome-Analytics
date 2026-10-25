@@ -225,7 +225,7 @@ export const TrainingEffectivenessView: React.FC<TrainingEffectivenessViewProps>
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Badge variant="coral" className="text-xs uppercase tracking-wider font-bold">
-                Phase 8 · Training Effectiveness
+                Training Effectiveness
               </Badge>
               <Badge variant="neutral" className="text-xs text-white/80 border-white/20">
                 Paired Diagnostic Analytics
@@ -459,7 +459,7 @@ export const TrainingEffectivenessView: React.FC<TrainingEffectivenessViewProps>
                       <ShieldAlert className="w-4 h-4 text-[#FF5B3D] shrink-0 mt-0.5" />
                       <div>
                         <span className="font-bold text-[#292444] block mb-0.5">
-                          Methodological Non-Causal Notice (Rule 8 Compliance)
+                          Methodological Non-Causal Notice
                         </span>
                         {effectiveness.non_causal_disclaimer}
                       </div>

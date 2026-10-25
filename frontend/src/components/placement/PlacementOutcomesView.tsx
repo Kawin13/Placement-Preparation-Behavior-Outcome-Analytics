@@ -199,7 +199,7 @@ export const PlacementOutcomesView: React.FC<PlacementOutcomesViewProps> = ({ cu
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Badge variant="coral" className="text-xs uppercase tracking-wider font-bold">
-                Phase 8 · Placement Outcomes
+                Placement Outcomes
               </Badge>
               <Badge variant="neutral" className="text-xs text-white/80 border-white/20">
                 Institutional Verification Ledger
@@ -474,7 +474,7 @@ export const PlacementOutcomesView: React.FC<PlacementOutcomesViewProps> = ({ cu
         <ShieldCheck className="w-5 h-5 text-[#292444] shrink-0 mt-0.5" />
         <div>
           <span className="font-bold text-[#292444] block mb-0.5">
-            Observational Outcome Integrity Policy (Rule 8 Compliance)
+            Observational Outcome Integrity Policy
           </span>
           Placement outcomes reflect verified, administrative records of formal offers. In accordance with college data
           governance, training attendance or portal readiness scores must not be interpreted as the sole or direct cause

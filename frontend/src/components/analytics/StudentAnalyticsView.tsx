@@ -67,7 +67,7 @@ export function StudentAnalyticsView() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-2xl">
             <Badge variant="warning" className="mb-3 text-xs uppercase tracking-wider font-semibold">
-              Authentic Performance & Diagnostic Telemetry
+              Authentic Performance & Skill Analytics
             </Badge>
             <h1 className="text-3xl font-bold tracking-tight mb-2">Behavior & Skill Analytics</h1>
             <p className="text-white/80 leading-relaxed text-sm">
@@ -135,7 +135,7 @@ export function StudentAnalyticsView() {
                   {analytics.prep_time.measured_platform_hours} <span className="text-base font-normal text-[#292444]/60">hrs</span>
                 </div>
                 <Badge variant="success" className="text-[10px] font-semibold">
-                  Measured Telemetry
+                  Platform Measured
                 </Badge>
               </div>
               <p className="text-[11px] text-[#292444]/60 mt-4 pt-3 border-t border-[#E8E0D2]/60">
@@ -226,7 +226,7 @@ export function StudentAnalyticsView() {
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4 text-[#FF5B3D]" />
                   <span className="text-xs font-bold text-[#292444]/60 uppercase tracking-wider">
-                    Adaptive Diagnostic Telemetry
+                    Adaptive Diagnostic Insights
                   </span>
                 </div>
                 <h2 className="text-xl font-bold text-[#292444]">Multi-Domain Skill Gap Index</h2>
@@ -374,7 +374,7 @@ export function StudentAnalyticsView() {
 
             {filteredTopics.length === 0 ? (
               <div className="py-10 text-center text-xs text-[#292444]/60">
-                No topic attempts recorded in this category. Complete practice sessions to populate topic telemetry.
+                No topic attempts recorded in this category. Complete practice sessions to populate topic insights.
               </div>
             ) : (
               <div className="overflow-x-auto">

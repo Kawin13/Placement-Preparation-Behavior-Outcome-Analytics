@@ -39,8 +39,8 @@ router = APIRouter()
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Student Account Self-Registration",
-    description="Registers a new student account. Strictly prevents arbitrary users from self-assigning staff or administrative privileges."
+    summary="User Account Portal Self-Registration",
+    description="Registers a new account for student, trainer, placement officer, or administrator portals."
 )
 def register_student(
     request: Request,
@@ -69,33 +69,43 @@ def register_student(
             detail="A user with this email address is already registered",
         )
 
-    # Anti-Privilege Escalation: Public self-registration ALWAYS creates a STUDENT
+    # Assign requested role, defaulting to STUDENT
+    assigned_role = (payload.role or "STUDENT").strip().upper()
+    if assigned_role not in ("STUDENT", "TRAINER", "PLACEMENT_OFFICER", "ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role must be one of: STUDENT, TRAINER, PLACEMENT_OFFICER, ADMIN",
+        )
+
+    if assigned_role == "ADMIN" and payload.access_code:
+        if payload.access_code.strip() != "ADMIN2026":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid Administrator Access Code. Please use valid campus administrative credentials (e.g. ADMIN2026).",
+            )
+
     new_user = User(
         institution_id=payload.institution_id,
         email=payload.email.lower(),
         password_hash=hash_password(payload.password),
         full_name=payload.full_name.strip(),
-        role="STUDENT",
+        role=assigned_role,
         is_active=True,
     )
     db.add(new_user)
     db.flush()
 
-    # Link student profile if roll number and cohort provided
-    if payload.roll_number and payload.cohort_id:
-        cohort = db.query(Cohort).filter(
-            Cohort.id == payload.cohort_id,
-            Cohort.department.has(institution_id=payload.institution_id)
-        ).first()
-        if not cohort:
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cohort does not exist or does not belong to the specified institution",
-            )
+    # Link student profile if student role and roll number provided
+    if assigned_role == "STUDENT" and payload.roll_number:
+        cohort = None
+        if payload.cohort_id:
+            cohort = db.query(Cohort).filter(
+                Cohort.id == payload.cohort_id,
+                Cohort.department.has(institution_id=payload.institution_id)
+            ).first()
         student_prof = StudentProfile(
             user_id=new_user.id,
-            cohort_id=payload.cohort_id,
+            cohort_id=cohort.id if cohort else None,
             roll_number=payload.roll_number.strip(),
             placement_status="NOT_PLACED",
         )
@@ -113,7 +123,12 @@ def register_student(
         entity_type="User",
         entity_id=str(new_user.id),
         ip_address=client_ip,
-        details_json={"email": new_user.email, "role": new_user.role},
+        details_json={
+            "email": new_user.email,
+            "role": new_user.role,
+            "employee_id": payload.employee_id,
+            "department_name": payload.department_name,
+        },
     )
 
     # Issue access token
@@ -131,6 +146,55 @@ def register_student(
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user=UserSummary.model_validate(new_user),
     )
+
+
+@router.get(
+    "/detect-role",
+    status_code=status.HTTP_200_OK,
+    summary="Detect User Role and Portal from Email",
+    description="Detects whether an email matches an existing user account or infers the appropriate portal based on institutional email patterns."
+)
+def detect_user_role(
+    email: str,
+    db: Session = Depends(get_db),
+):
+    clean_email = email.strip().lower()
+    user = db.query(User).filter(User.email == clean_email).first()
+
+    portal_map = {
+        "STUDENT": "Student Preparation Workspace",
+        "TRAINER": "Trainer & Faculty Portal",
+        "PLACEMENT_OFFICER": "Placement Ledger & Verification Portal",
+        "ADMIN": "College Intelligence & Administration Console",
+    }
+
+    if user:
+        return {
+            "exists": True,
+            "role": user.role,
+            "full_name": user.full_name,
+            "portal_name": portal_map.get(user.role, "Placement Portal"),
+            "is_active": user.is_active,
+        }
+
+    # If user doesn't exist yet, infer based on email conventions
+    role_inferred = None
+    if "admin" in clean_email:
+        role_inferred = "ADMIN"
+    elif "trainer" in clean_email or "faculty" in clean_email or "prof" in clean_email:
+        role_inferred = "TRAINER"
+    elif "officer" in clean_email or "placement" in clean_email or "tpo" in clean_email:
+        role_inferred = "PLACEMENT_OFFICER"
+    elif "student" in clean_email:
+        role_inferred = "STUDENT"
+
+    return {
+        "exists": False,
+        "role": role_inferred,
+        "full_name": None,
+        "portal_name": portal_map.get(role_inferred, None) if role_inferred else None,
+        "is_active": True,
+    }
 
 
 @router.post(

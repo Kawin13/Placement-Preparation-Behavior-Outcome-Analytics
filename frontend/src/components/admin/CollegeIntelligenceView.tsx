@@ -291,7 +291,7 @@ export const CollegeIntelligenceView: React.FC<CollegeIntelligenceViewProps> = (
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Badge variant="coral" className="text-xs uppercase tracking-wider font-bold">
-                Phase 9 · Institutional Intelligence
+                Executive Dossier &amp; Administration
               </Badge>
               <Badge variant="neutral" className="text-xs text-white/80 border-white/20">
                 Accreditation & Administrative Suite
@@ -464,7 +464,7 @@ export const CollegeIntelligenceView: React.FC<CollegeIntelligenceViewProps> = (
           {loadingOverview ? (
             <div className="p-12 text-center text-[#5E5875]">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#FF5B3D]" />
-              <p className="text-sm">Synthesizing institutional metrics from PostgreSQL...</p>
+              <p className="text-sm">Synthesizing institutional performance metrics...</p>
             </div>
           ) : overviewError ? (
             <Card className="p-6 border-red-200 bg-red-50 text-red-700 text-xs">
@@ -700,7 +700,7 @@ export const CollegeIntelligenceView: React.FC<CollegeIntelligenceViewProps> = (
                 <ShieldCheck className="w-5 h-5 text-[#292444] shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold text-[#292444] block mb-0.5">
-                    Observational Attribution Policy & Methodological Guardrails (Rule 8 Compliance)
+                    Observational Attribution Policy & Methodological Guardrails
                   </span>
                   {overview.non_causal_notice}
                 </div>
@@ -879,7 +879,7 @@ export const CollegeIntelligenceView: React.FC<CollegeIntelligenceViewProps> = (
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#E8E0D2]">
             <div>
-              <h3 className="text-base font-bold text-[#292444] font-display">Content & Question Bank Telemetry</h3>
+              <h3 className="text-base font-bold text-[#292444] font-display">Content & Assessment Bank Overview</h3>
               <p className="text-xs text-[#5E5875]">Curated academic assessments and domain coverage.</p>
             </div>
             <Button variant="ghost" size="sm" onClick={loadContentSummary} leftIcon={<RefreshCw className="w-3.5 h-3.5" />} />
@@ -888,7 +888,7 @@ export const CollegeIntelligenceView: React.FC<CollegeIntelligenceViewProps> = (
           {loadingContent ? (
             <div className="p-8 text-center text-[#5E5875]">
               <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#FF5B3D]" />
-              <p className="text-xs">Loading question bank telemetry...</p>
+              <p className="text-xs">Loading question bank catalog...</p>
             </div>
           ) : contentSummary ? (
             <div className="space-y-5">

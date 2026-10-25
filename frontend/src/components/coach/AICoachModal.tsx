@@ -199,9 +199,9 @@ export const AICoachModal: React.FC<AICoachModalProps> = ({
               <p className="text-sm font-semibold text-[#292444]">
                 {activeTab === 'explain'
                   ? 'Consulting grounded syllabus reasoning engine...'
-                  : 'Synthesizing verified attempt history & gap telemetry...'}
+                  : 'Synthesizing verified attempt history & skill gaps...'}
               </p>
-              <p className="text-xs text-[#5E5875]">Zero personal telemetry is shared externally.</p>
+              <p className="text-xs text-[#5E5875]">Zero personal student data is shared externally.</p>
             </div>
           ) : activeTab === 'explain' && explanation ? (
             /* Explain Mistake Tab */
@@ -275,7 +275,7 @@ export const AICoachModal: React.FC<AICoachModalProps> = ({
               <div className="p-4 bg-[#292444] text-white rounded-2xl shadow-sm space-y-1">
                 <div className="flex items-center gap-1.5 text-[#FF5B3D] text-xs font-bold uppercase tracking-wider">
                   <Lightbulb className="w-3.5 h-3.5" />
-                  Key Pedagogical Rule to Retain
+                  Key Concept to Remember
                 </div>
                 <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-medium">
                   {explanation.remedial_takeaway}

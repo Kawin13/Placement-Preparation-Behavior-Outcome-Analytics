@@ -51,6 +51,27 @@ export function setStoredUser(user: UserSummary): void {
   localStorage.setItem('user_info', JSON.stringify(user));
 }
 
+export interface RegisterUserPayload {
+  email: string;
+  password: string;
+  full_name: string;
+  institution_id: string;
+  role?: 'STUDENT' | 'TRAINER' | 'PLACEMENT_OFFICER' | 'ADMIN';
+  roll_number?: string;
+  cohort_id?: string;
+  employee_id?: string;
+  department_name?: string;
+  access_code?: string;
+}
+
+export interface DetectRoleResponse {
+  exists: boolean;
+  role: string | null;
+  full_name: string | null;
+  portal_name: string | null;
+  is_active: boolean;
+}
+
 // API Calls
 export async function loginUser(email: string, password: string): Promise<TokenResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -61,7 +82,7 @@ export async function loginUser(email: string, password: string): Promise<TokenR
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Login failed. Please check your credentials.');
+    throw new Error(data.detail || data.message || 'Login failed. Please check your credentials.');
   }
 
   setStoredToken(data.access_token);
@@ -69,13 +90,18 @@ export async function loginUser(email: string, password: string): Promise<TokenR
   return data;
 }
 
-export async function registerStudent(payload: {
-  email: string;
-  password: string;
-  full_name: string;
-  institution_id: string;
-  roll_number?: string;
-}): Promise<TokenResponse> {
+export async function detectUserRole(email: string): Promise<DetectRoleResponse | null> {
+  if (!email || !email.includes('@') || email.length < 5) return null;
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/detect-role?email=${encodeURIComponent(email)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function registerUser(payload: RegisterUserPayload): Promise<TokenResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -84,13 +110,15 @@ export async function registerStudent(payload: {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Registration failed.');
+    throw new Error(data.detail || data.message || 'Registration failed.');
   }
 
   setStoredToken(data.access_token);
   setStoredUser(data.user);
   return data;
 }
+
+export const registerStudent = registerUser;
 
 export async function fetchInstitutions(): Promise<InstitutionItem[]> {
   try {
