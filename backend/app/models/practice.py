@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Column, String, Text, Boolean, Integer, Numeric, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -13,9 +13,13 @@ class PracticeSession(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     assessment_id = Column(UUID(as_uuid=True), ForeignKey("assessments.id", ondelete="SET NULL"), nullable=True, index=True)
     session_type = Column(String(30), nullable=False, default="PRACTICE")
+    status = Column(String(30), default="IN_PROGRESS", nullable=False)
+    time_spent_seconds = Column(Integer, default=0, nullable=False)
+    assessment_version = Column(Integer, default=1, nullable=False)
+    total_score = Column(Numeric(6, 2), nullable=True)
+    max_score = Column(Numeric(6, 2), nullable=True)
     started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    total_score = Column(Numeric(6, 2), nullable=True)
 
     user = relationship("User", back_populates="practice_sessions")
     assessment = relationship("Assessment", back_populates="sessions")
@@ -25,6 +29,10 @@ class PracticeSession(Base):
         CheckConstraint(
             "session_type IN ('PRACTICE', 'TIMED_MOCK', 'REVISE_MISTAKES')",
             name="chk_session_type",
+        ),
+        CheckConstraint(
+            "status IN ('IN_PROGRESS', 'SUBMITTED', 'TIMED_OUT', 'ABANDONED')",
+            name="chk_session_status",
         ),
     )
 
@@ -49,6 +57,7 @@ class AttemptRecord(Base):
 
     __table_args__ = (
         CheckConstraint("time_spent_ms >= 0", name="chk_time_spent_positive"),
+        UniqueConstraint("session_id", "question_id", name="uq_session_question_attempt"),
     )
 
 

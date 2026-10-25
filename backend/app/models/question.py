@@ -18,6 +18,8 @@ class Question(Base):
     default_points = Column(Integer, default=1, nullable=False)
     explanation = Column(Text, nullable=True)
     is_verified = Column(Boolean, default=True, nullable=False)
+    version = Column(Integer, default=1, nullable=False)
+    status = Column(String(30), default="PUBLISHED", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     skill = relationship("Skill", back_populates="questions")
@@ -34,6 +36,10 @@ class Question(Base):
         CheckConstraint(
             "difficulty IN ('EASY', 'MEDIUM', 'HARD')",
             name="chk_question_difficulty",
+        ),
+        CheckConstraint(
+            "status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')",
+            name="chk_question_status",
         ),
     )
 

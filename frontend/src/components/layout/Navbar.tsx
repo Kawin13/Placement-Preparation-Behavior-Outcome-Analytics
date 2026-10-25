@@ -7,6 +7,8 @@ import type { UserSummary } from '../../services/auth';
 export interface NavbarProps {
   systemStatus?: 'connected' | 'checking' | 'error';
   currentUser?: UserSummary | null;
+  currentView?: 'workspace' | 'practice' | 'mistakes' | 'catalog';
+  onViewChange?: (view: 'workspace' | 'practice' | 'mistakes' | 'catalog') => void;
   onStartPractice?: () => void;
   onSignIn?: () => void;
   onSignOut?: () => void;
@@ -15,6 +17,8 @@ export interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   systemStatus = 'connected',
   currentUser,
+  currentView = 'workspace',
+  onViewChange,
   onStartPractice,
   onSignIn,
   onSignOut,
@@ -23,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 w-full bg-[#FAF6ED]/90 backdrop-blur-md border-b border-[#E8E0D2] transition-colors">
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Identity */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onViewChange?.('workspace')}>
           <div className="w-10 h-10 rounded-xl bg-[#292444] text-[#FAF6ED] flex items-center justify-center font-bold shadow-sm">
             <GraduationCap className="w-5 h-5 text-[#FF5B3D]" />
           </div>
@@ -38,32 +42,50 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Navigation Items (Desktop) */}
-        <nav className="hidden md:flex items-center gap-1 bg-[#F5EFE3]/80 p-1.5 rounded-full border border-[#E8E0D2]">
-          <a
-            href="#overview"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#292444] bg-white shadow-xs"
-          >
-            Overview
-          </a>
-          <a
-            href="#modules"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#5E5875] hover:text-[#292444] transition-colors"
-          >
-            Practice Tracks
-          </a>
-          <a
-            href="#architecture"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#5E5875] hover:text-[#292444] transition-colors"
-          >
-            Security & RBAC
-          </a>
-          <a
-            href="#database"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold text-[#5E5875] hover:text-[#292444] transition-colors"
-          >
-            PostgreSQL Status
-          </a>
-        </nav>
+        {currentUser && (
+          <nav className="hidden md:flex items-center gap-1 bg-[#F5EFE3]/80 p-1.5 rounded-full border border-[#E8E0D2]">
+            <button
+              onClick={() => onViewChange?.('workspace')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'workspace'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Workspace
+            </button>
+            <button
+              onClick={() => onViewChange?.('practice')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'practice'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Practice Engine
+            </button>
+            <button
+              onClick={() => onViewChange?.('mistakes')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'mistakes'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Mistake Notebook
+            </button>
+            <button
+              onClick={() => onViewChange?.('catalog')}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                currentView === 'catalog'
+                  ? 'text-[#292444] bg-white shadow-xs'
+                  : 'text-[#5E5875] hover:text-[#292444]'
+              }`}
+            >
+              Curriculum Overview
+            </button>
+          </nav>
+        )}
 
         {/* System Indicator, User Profile & Actions */}
         <div className="flex items-center gap-3">

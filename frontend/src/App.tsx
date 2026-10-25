@@ -6,8 +6,17 @@ import { Badge } from './components/common/Badge';
 import { EmptyState } from './components/common/EmptyState';
 import { AuthModal } from './components/auth/AuthModal';
 import { StudentWorkspace } from './components/student/StudentWorkspace';
+import { PracticeModuleList } from './components/practice/PracticeModuleList';
+import { PracticeRunner } from './components/practice/PracticeRunner';
+import { PracticeResultsDrawer } from './components/practice/PracticeResultsDrawer';
+import { MistakeNotebookView } from './components/practice/MistakeNotebookView';
 import { fetchHealthTelemetry, type HealthData } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
+import {
+  startPracticeSession,
+  type ActiveSession,
+  type SubmitResult,
+} from './services/practice';
 import {
   Brain,
   Calculator,
@@ -23,7 +32,8 @@ import {
   Layers,
   ShieldCheck,
   KeyRound,
-  UserCheck
+  UserCheck,
+  BookOpen,
 } from 'lucide-react';
 
 export function App() {
@@ -33,7 +43,9 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
-  const [viewMode, setViewMode] = useState<'workspace' | 'catalog'>('workspace');
+  const [viewMode, setViewMode] = useState<'workspace' | 'practice' | 'running' | 'results' | 'mistakes' | 'catalog'>('workspace');
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
 
   useEffect(() => {
     // Check local storage for existing session
@@ -56,10 +68,38 @@ export function App() {
   const handleSignOut = () => {
     removeStoredToken();
     setCurrentUser(null);
+    setViewMode('catalog');
+    setActiveSession(null);
+    setSubmitResult(null);
   };
 
   const handleAuthSuccess = (user: UserSummary) => {
     setCurrentUser(user);
+    setViewMode('workspace');
+  };
+
+  const handleStartPracticeClick = () => {
+    if (!currentUser) {
+      setAuthMode('signin');
+      setIsAuthModalOpen(true);
+    } else {
+      setViewMode('practice');
+    }
+  };
+
+  const handleStartSession = async (assessmentId: string, sessionType: 'PRACTICE' | 'TIMED_MOCK') => {
+    try {
+      const session = await startPracticeSession(assessmentId, sessionType);
+      setActiveSession(session);
+      setViewMode('running');
+    } catch (err: any) {
+      alert(err.message || 'Failed to start practice session');
+    }
+  };
+
+  const handleSessionSubmitted = (result: SubmitResult) => {
+    setSubmitResult(result);
+    setViewMode('results');
   };
 
   const modules = [
@@ -135,14 +175,9 @@ export function App() {
       <Navbar
         systemStatus={healthStatus}
         currentUser={currentUser}
-        onStartPractice={() => {
-          if (!currentUser) {
-            setAuthMode('signin');
-            setIsAuthModalOpen(true);
-          } else {
-            setSelectedModule('quant');
-          }
-        }}
+        currentView={viewMode as any}
+        onViewChange={(v) => setViewMode(v)}
+        onStartPractice={handleStartPracticeClick}
         onSignIn={() => {
           setAuthMode('signin');
           setIsAuthModalOpen(true);
@@ -180,11 +215,11 @@ export function App() {
         )}
 
         {/* View Switcher for Authenticated Students */}
-        {currentUser && (
-          <div className="flex items-center gap-3 mb-8 border-b border-[#E8E0D2] pb-4">
+        {currentUser && viewMode !== 'running' && (
+          <div className="flex flex-wrap items-center gap-2 mb-8 border-b border-[#E8E0D2] pb-4">
             <button
               onClick={() => setViewMode('workspace')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 viewMode === 'workspace'
                   ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
                   : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
@@ -195,21 +230,62 @@ export function App() {
             </button>
 
             <button
+              onClick={() => setViewMode('practice')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                viewMode === 'practice'
+                  ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                  : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+              }`}
+            >
+              <Calculator className="w-4 h-4" />
+              <span>Practice Engine</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('mistakes')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+                viewMode === 'mistakes'
+                  ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
+                  : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Mistake Notebook</span>
+            </button>
+
+            <button
               onClick={() => setViewMode('catalog')}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
                 viewMode === 'catalog'
                   ? 'bg-[#292444] text-[#FAF6ED] shadow-sm'
                   : 'text-[#5E5875] hover:bg-white hover:text-[#292444]'
               }`}
             >
               <Brain className="w-4 h-4" />
-              <span>Learning Modules & Practice</span>
+              <span>Curriculum Overview</span>
             </button>
           </div>
         )}
 
+        {/* View Routing */}
         {currentUser && viewMode === 'workspace' ? (
           <StudentWorkspace />
+        ) : currentUser && viewMode === 'practice' ? (
+          <PracticeModuleList onStartSession={handleStartSession} />
+        ) : currentUser && viewMode === 'running' && activeSession ? (
+          <PracticeRunner
+            session={activeSession}
+            onSessionSubmitted={handleSessionSubmitted}
+            onExit={() => setViewMode('practice')}
+          />
+        ) : currentUser && viewMode === 'results' && submitResult ? (
+          <PracticeResultsDrawer
+            result={submitResult}
+            onGoToWorkspace={() => setViewMode('workspace')}
+            onGoToMistakes={() => setViewMode('mistakes')}
+          />
+        ) : currentUser && viewMode === 'mistakes' ? (
+          <MistakeNotebookView />
         ) : (
           <>
             {/* Hero Section */}
