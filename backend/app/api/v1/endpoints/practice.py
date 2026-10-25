@@ -20,6 +20,15 @@ from app.schemas.practice import (
     AssessmentDetailResponse,
     LinkQuestionsRequest,
     QuestionCreate,
+    QuestionOptionDetail,
+    QuestionDetailResponse,
+    QuestionListResponse,
+    QuestionUpdate,
+    QuestionStatusUpdate,
+    QuestionBulkImportItem,
+    QuestionBulkImportRequest,
+    AIQuestionGenerationRequest,
+    AIQuestionGenerationResponse,
     StartSessionRequest,
     ActiveSessionResponse,
     CandidateQuestionResponse,
@@ -32,8 +41,423 @@ from app.schemas.practice import (
     MistakeEntryResponse,
     UpdateMistakeStatusRequest,
 )
+from app.services.question_generator import generate_questions_with_ai
 
 router = APIRouter()
+
+
+# --------------------------------------------------------------------------
+# Question Bank Management & AI Question Generation
+# --------------------------------------------------------------------------
+
+@router.get("/questions", response_model=QuestionListResponse)
+def list_questions(
+    skill_id: Optional[uuid.UUID] = Query(None),
+    domain: Optional[str] = Query(None),
+    difficulty: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    question_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lists questions in the question bank with extensive filtering and search."""
+    query = db.query(Question)
+
+    if current_user.role == "STUDENT":
+        # Students can only view published questions
+        query = query.filter(Question.status == "PUBLISHED")
+    elif status:
+        query = query.filter(Question.status == status)
+
+    if skill_id:
+        query = query.filter(Question.skill_id == skill_id)
+
+    if domain:
+        query = query.join(Skill, Question.skill_id == Skill.id).filter(Skill.domain == domain)
+
+    if difficulty:
+        query = query.filter(Question.difficulty == difficulty.upper())
+
+    if question_type:
+        query = query.filter(Question.question_type == question_type)
+
+    if search:
+        s = f"%{search.strip()}%"
+        query = query.filter((Question.title.ilike(s)) | (Question.content.ilike(s)))
+
+    total = query.count()
+    questions = (
+        query.order_by(desc(Question.created_at))
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    items = []
+    for q in questions:
+        attempts_cnt = db.query(func.count(AttemptRecord.id)).filter(AttemptRecord.question_id == q.id).scalar() or 0
+        correct_cnt = db.query(func.count(AttemptRecord.id)).filter(
+            AttemptRecord.question_id == q.id,
+            AttemptRecord.is_correct == True
+        ).scalar() or 0
+        accuracy = round((correct_cnt / attempts_cnt) * 100, 1) if attempts_cnt > 0 else 0.0
+
+        # For students, strip is_correct flag to prevent premature disclosure
+        opts = []
+        for opt in q.options:
+            opts.append(
+                QuestionOptionDetail(
+                    id=opt.id,
+                    option_text=opt.option_text,
+                    is_correct=opt.is_correct if current_user.role != "STUDENT" else False,
+                    feedback=opt.feedback if current_user.role != "STUDENT" else None,
+                )
+            )
+
+        items.append(
+            QuestionDetailResponse(
+                id=q.id,
+                skill_id=q.skill_id,
+                skill_name=q.skill.name if q.skill else None,
+                domain=q.skill.domain if q.skill else None,
+                title=q.title,
+                content=q.content,
+                question_type=q.question_type,
+                difficulty=q.difficulty,
+                default_points=q.default_points,
+                explanation=q.explanation if current_user.role != "STUDENT" else None,
+                status=q.status,
+                is_verified=q.is_verified,
+                version=q.version,
+                options=opts,
+                attempts_count=attempts_cnt,
+                accuracy_rate=accuracy,
+                created_at=q.created_at,
+            )
+        )
+
+    return QuestionListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/questions/{question_id}", response_model=QuestionDetailResponse)
+def get_question_detail(
+    question_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieves full details for a single question."""
+    q = db.query(Question).filter(Question.id == question_id).first()
+    if not q:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+
+    if current_user.role == "STUDENT" and q.status != "PUBLISHED":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Question is not published")
+
+    attempts_cnt = db.query(func.count(AttemptRecord.id)).filter(AttemptRecord.question_id == q.id).scalar() or 0
+    correct_cnt = db.query(func.count(AttemptRecord.id)).filter(
+        AttemptRecord.question_id == q.id,
+        AttemptRecord.is_correct == True
+    ).scalar() or 0
+    accuracy = round((correct_cnt / attempts_cnt) * 100, 1) if attempts_cnt > 0 else 0.0
+
+    opts = [
+        QuestionOptionDetail(
+            id=opt.id,
+            option_text=opt.option_text,
+            is_correct=opt.is_correct if current_user.role != "STUDENT" else False,
+            feedback=opt.feedback if current_user.role != "STUDENT" else None,
+        )
+        for opt in q.options
+    ]
+
+    return QuestionDetailResponse(
+        id=q.id,
+        skill_id=q.skill_id,
+        skill_name=q.skill.name if q.skill else None,
+        domain=q.skill.domain if q.skill else None,
+        title=q.title,
+        content=q.content,
+        question_type=q.question_type,
+        difficulty=q.difficulty,
+        default_points=q.default_points,
+        explanation=q.explanation if current_user.role != "STUDENT" else None,
+        status=q.status,
+        is_verified=q.is_verified,
+        version=q.version,
+        options=opts,
+        attempts_count=attempts_cnt,
+        accuracy_rate=accuracy,
+        created_at=q.created_at,
+    )
+
+
+@router.post("/questions", response_model=QuestionDetailResponse, status_code=status.HTTP_201_CREATED)
+def create_question(
+    payload: QuestionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Authorised endpoint (Staff only) to manually create a question."""
+    if current_user.role not in ["ADMIN", "TRAINER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can create questions")
+
+    skill = db.query(Skill).filter(Skill.id == payload.skill_id).first()
+    if not skill:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specified skill does not exist")
+
+    q = Question(
+        skill_id=skill.id,
+        title=payload.title,
+        content=payload.content,
+        question_type=payload.question_type,
+        difficulty=payload.difficulty,
+        default_points=payload.default_points,
+        explanation=payload.explanation,
+        is_verified=True,
+        status="PUBLISHED",
+        version=1,
+    )
+    db.add(q)
+    db.flush()
+
+    for opt in payload.options:
+        db.add(
+            QuestionOption(
+                question_id=q.id,
+                option_text=opt.option_text,
+                is_correct=opt.is_correct,
+                feedback=opt.feedback,
+            )
+        )
+
+    db.commit()
+    db.refresh(q)
+
+    opts = [
+        QuestionOptionDetail(
+            id=opt.id,
+            option_text=opt.option_text,
+            is_correct=opt.is_correct,
+            feedback=opt.feedback,
+        )
+        for opt in q.options
+    ]
+
+    return QuestionDetailResponse(
+        id=q.id,
+        skill_id=skill.id,
+        skill_name=skill.name,
+        domain=skill.domain,
+        title=q.title,
+        content=q.content,
+        question_type=q.question_type,
+        difficulty=q.difficulty,
+        default_points=q.default_points,
+        explanation=q.explanation,
+        status=q.status,
+        is_verified=q.is_verified,
+        version=q.version,
+        options=opts,
+        attempts_count=0,
+        accuracy_rate=0.0,
+        created_at=q.created_at,
+    )
+
+
+@router.put("/questions/{question_id}", response_model=QuestionDetailResponse)
+def update_question(
+    question_id: uuid.UUID,
+    payload: QuestionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Authorised endpoint (Staff only) to update an existing question."""
+    if current_user.role not in ["ADMIN", "TRAINER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can update questions")
+
+    q = db.query(Question).filter(Question.id == question_id).first()
+    if not q:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+
+    if payload.title is not None:
+        q.title = payload.title
+    if payload.content is not None:
+        q.content = payload.content
+    if payload.question_type is not None:
+        q.question_type = payload.question_type
+    if payload.difficulty is not None:
+        q.difficulty = payload.difficulty
+    if payload.default_points is not None:
+        q.default_points = payload.default_points
+    if payload.explanation is not None:
+        q.explanation = payload.explanation
+    if payload.skill_id is not None:
+        skill = db.query(Skill).filter(Skill.id == payload.skill_id).first()
+        if not skill:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found")
+        q.skill_id = payload.skill_id
+
+    if payload.options is not None:
+        # Remove existing options and recreate
+        db.query(QuestionOption).filter(QuestionOption.question_id == q.id).delete()
+        for opt in payload.options:
+            db.add(
+                QuestionOption(
+                    question_id=q.id,
+                    option_text=opt.option_text,
+                    is_correct=opt.is_correct,
+                    feedback=opt.feedback,
+                )
+            )
+
+    q.version += 1
+    db.commit()
+    db.refresh(q)
+
+    opts = [
+        QuestionOptionDetail(
+            id=opt.id,
+            option_text=opt.option_text,
+            is_correct=opt.is_correct,
+            feedback=opt.feedback,
+        )
+        for opt in q.options
+    ]
+
+    return QuestionDetailResponse(
+        id=q.id,
+        skill_id=q.skill_id,
+        skill_name=q.skill.name if q.skill else None,
+        domain=q.skill.domain if q.skill else None,
+        title=q.title,
+        content=q.content,
+        question_type=q.question_type,
+        difficulty=q.difficulty,
+        default_points=q.default_points,
+        explanation=q.explanation,
+        status=q.status,
+        is_verified=q.is_verified,
+        version=q.version,
+        options=opts,
+        attempts_count=0,
+        accuracy_rate=0.0,
+        created_at=q.created_at,
+    )
+
+
+@router.patch("/questions/{question_id}/status")
+def update_question_status(
+    question_id: uuid.UUID,
+    payload: QuestionStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Authorised endpoint (Staff only) to publish, archive, or draft a question."""
+    if current_user.role not in ["ADMIN", "TRAINER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can update question status")
+
+    q = db.query(Question).filter(Question.id == question_id).first()
+    if not q:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+
+    q.status = payload.status
+    if payload.status == "PUBLISHED":
+        q.is_verified = True
+    db.commit()
+    return {"message": f"Question status updated to {payload.status}"}
+
+
+@router.post("/questions/import")
+def bulk_import_questions(
+    payload: QuestionBulkImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Authorised endpoint (Staff only) to import questions in bulk from JSON/CSV."""
+    if current_user.role not in ["ADMIN", "TRAINER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can import questions")
+
+    imported_count = 0
+    for item in payload.questions:
+        # Resolve or create Skill
+        skill_name = item.skill_name or "General Problem Solving"
+        skill = db.query(Skill).filter(
+            Skill.domain == item.domain,
+            func.lower(Skill.name) == func.lower(skill_name.strip())
+        ).first()
+        if not skill:
+            skill = Skill(
+                name=skill_name.strip(),
+                domain=item.domain or "QUANT",
+                description=f"Skill for {skill_name}",
+            )
+            db.add(skill)
+            db.flush()
+
+        q = Question(
+            skill_id=skill.id,
+            title=item.title[:255],
+            content=item.content,
+            question_type=item.question_type,
+            difficulty=item.difficulty,
+            default_points=item.default_points,
+            explanation=item.explanation,
+            status="PUBLISHED",
+            is_verified=True,
+            version=1,
+        )
+        db.add(q)
+        db.flush()
+
+        for opt in item.options:
+            db.add(
+                QuestionOption(
+                    question_id=q.id,
+                    option_text=opt.option_text,
+                    is_correct=opt.is_correct,
+                    feedback=opt.feedback,
+                )
+            )
+        imported_count += 1
+
+    db.commit()
+    return {"message": f"Successfully imported {imported_count} questions"}
+
+
+@router.post("/questions/generate-ai", response_model=AIQuestionGenerationResponse)
+def generate_questions_ai(
+    payload: AIQuestionGenerationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Authorised endpoint (Staff only) to generate questions using AI with structured validation and draft saving."""
+    if current_user.role not in ["ADMIN", "TRAINER"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only staff can generate questions with AI")
+
+    try:
+        result = generate_questions_with_ai(
+            db=db,
+            current_user=current_user,
+            req=payload,
+        )
+        return AIQuestionGenerationResponse(
+            questions_generated=result["questions_generated"],
+            questions=result["questions"],
+            provider_used=result["provider_used"],
+            notice=result["notice"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"AI generation failed: {str(e)}")
 
 
 # --------------------------------------------------------------------------

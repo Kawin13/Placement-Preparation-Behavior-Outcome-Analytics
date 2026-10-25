@@ -22,6 +22,17 @@ from app.models.dsa import (
     DSAUserProgress,
 )
 
+from app.models.roadmap import (
+    CareerPath,
+    RoadmapSubject,
+    RoadmapTopic,
+    RoadmapSubtopic,
+    LearningResource,
+    StudentCareerGoal,
+    StudentTopicProgress,
+    StudentBehaviorEvent,
+)
+
 __all__ = [
     "Base",
     "Institution",
@@ -50,4 +61,12 @@ __all__ = [
     "DSATestCase",
     "DSASubmission",
     "DSAUserProgress",
+    "CareerPath",
+    "RoadmapSubject",
+    "RoadmapTopic",
+    "RoadmapSubtopic",
+    "LearningResource",
+    "StudentCareerGoal",
+    "StudentTopicProgress",
+    "StudentBehaviorEvent",
 ]

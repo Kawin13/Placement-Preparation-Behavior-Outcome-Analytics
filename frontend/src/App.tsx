@@ -41,6 +41,9 @@ import { AppShell, type ViewMode } from './components/layout/AppShell';
 import { LearningResourcesView } from './components/catalog/LearningResourcesView';
 import { DSAProblemListView } from './components/dsa/DSAProblemListView';
 import { DSACodingWorkspace } from './components/dsa/DSACodingWorkspace';
+import { CareerRoadmapView } from './components/roadmap/CareerRoadmapView';
+import { TopicDetailView } from './components/roadmap/TopicDetailView';
+import { QuestionBankManager } from './components/practice/QuestionBankManager';
 import { fetchHealthTelemetry } from './services/api';
 import { getStoredUser, removeStoredToken, type UserSummary } from './services/auth';
 import {
@@ -56,24 +59,10 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserSummary | null>(null);
 
   // Active View Router
-  const [viewMode, setViewMode] = useState<
-    | 'workspace'
-    | 'practice'
-    | 'dsa'
-    | 'running'
-    | 'results'
-    | 'mistakes'
-    | 'analytics'
-    | 'readiness'
-    | 'outcomes'
-    | 'training'
-    | 'cohort-analytics'
-    | 'admin'
-    | 'catalog'
-  >('workspace');
+  const [viewMode, setViewMode] = useState<ViewMode>('workspace');
 
-  // Selected DSA Problem Slug
   const [selectedDsaSlug, setSelectedDsaSlug] = useState<string | null>(null);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
   // Active Practice Execution State
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -233,6 +222,29 @@ export function App() {
           onStartPractice={() => setViewMode('practice')}
         >
           {viewMode === 'workspace' && <StudentWorkspace />}
+          {viewMode === 'roadmap' && (
+            selectedTopicId ? (
+              <TopicDetailView
+                topicId={selectedTopicId}
+                onBack={() => setSelectedTopicId(null)}
+                onSelectDsaProblem={(slug) => {
+                  setSelectedDsaSlug(slug);
+                  setViewMode('dsa');
+                }}
+                onPracticeQuestions={() => setViewMode('practice')}
+              />
+            ) : (
+              <CareerRoadmapView
+                onSelectTopic={(tId) => setSelectedTopicId(tId)}
+                onLaunchDsa={(slug) => {
+                  setSelectedDsaSlug(slug);
+                  setViewMode('dsa');
+                }}
+                onStartPractice={() => setViewMode('practice')}
+              />
+            )
+          )}
+          {viewMode === 'qbank' && <QuestionBankManager />}
           {viewMode === 'practice' && <PracticeModuleList onStartSession={handleStartSession} />}
           {viewMode === 'dsa' && (
             selectedDsaSlug ? (

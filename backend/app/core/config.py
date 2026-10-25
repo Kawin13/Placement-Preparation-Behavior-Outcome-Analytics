@@ -32,6 +32,12 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Programming Code Execution Sandbox Configurations
+    CODE_EXECUTION_ENABLED: bool = True
+    CODE_EXECUTION_TIMEOUT_SEC: float = 3.0
+    CODE_EXECUTION_MAX_OUTPUT_BYTES: int = 65536
+    CODE_EXECUTION_MAX_CODE_BYTES: int = 65536
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -45,6 +51,14 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_production_secret(cls, v: str, info) -> str:
+        # In production, require strong secrets that are not default dev keys
+        if "dev_secret_key" in v and info.data.get("ENVIRONMENT") == "production":
+            raise ValueError("Production environment requires an explicitly set, strong SECRET_KEY.")
+        return v
 
 
 settings = Settings()

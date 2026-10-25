@@ -26,14 +26,8 @@ class UserRegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, description="Minimum 8 characters with upper, lower, number, special char")
     full_name: str = Field(..., min_length=2, max_length=150)
     institution_id: uuid.UUID
-    role: Optional[str] = "STUDENT"
-    # Optional fields for student
     roll_number: Optional[str] = None
     cohort_id: Optional[uuid.UUID] = None
-    # Optional fields for staff/trainer/placement officer/admin
-    employee_id: Optional[str] = None
-    department_name: Optional[str] = None
-    access_code: Optional[str] = None
 
 
 class UserLoginRequest(BaseModel):

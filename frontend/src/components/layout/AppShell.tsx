@@ -22,7 +22,9 @@ import type { UserSummary } from '../../services/auth';
 
 export type ViewMode =
   | 'workspace'
+  | 'roadmap'
   | 'practice'
+  | 'qbank'
   | 'dsa'
   | 'running'
   | 'results'
@@ -84,8 +86,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           icon: <LayoutDashboard className="w-4 h-4 shrink-0" />,
         },
         {
+          id: 'roadmap',
+          label: 'Career Roadmap',
+          icon: <Compass className="w-4 h-4 shrink-0" />,
+          badge: 'Path',
+        },
+        {
           id: 'practice',
-          label: 'Practice',
+          label: 'Assessments',
           icon: <Brain className="w-4 h-4 shrink-0" />,
         },
         {
@@ -140,8 +148,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           icon: <TrendingUp className="w-4 h-4 shrink-0" />,
         },
         {
+          id: 'qbank',
+          label: 'Question Bank & AI',
+          icon: <Sparkles className="w-4 h-4 shrink-0" />,
+          badge: 'AI',
+        },
+        {
           id: 'practice',
-          label: 'Practice Bank',
+          label: 'Assessments',
           icon: <Brain className="w-4 h-4 shrink-0" />,
         },
         {
@@ -187,8 +201,19 @@ export const AppShell: React.FC<AppShellProps> = ({
     return [
       {
         id: 'admin',
-        label: 'Executive Dossier',
+        label: 'Campus Administration',
         icon: <ShieldCheck className="w-4 h-4 shrink-0" />,
+      },
+      {
+        id: 'qbank',
+        label: 'Question Bank & AI',
+        icon: <Sparkles className="w-4 h-4 shrink-0" />,
+        badge: 'AI',
+      },
+      {
+        id: 'practice',
+        label: 'Assessments',
+        icon: <Brain className="w-4 h-4 shrink-0" />,
       },
       {
         id: 'cohort-analytics',
@@ -206,15 +231,9 @@ export const AppShell: React.FC<AppShellProps> = ({
         icon: <Building2 className="w-4 h-4 shrink-0" />,
       },
       {
-        id: 'practice',
-        label: 'Assessment Catalog',
-        icon: <Brain className="w-4 h-4 shrink-0" />,
-      },
-      {
         id: 'dsa',
         label: 'DSA Studio',
         icon: <Code2 className="w-4 h-4 shrink-0" />,
-        badge: 'Judge',
       },
       {
         id: 'catalog',

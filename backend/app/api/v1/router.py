@@ -12,9 +12,13 @@ from app.api.v1.endpoints import (
     placement,
     training,
     dsa,
+    roadmap,
 )
 
 api_router = APIRouter()
+
+# Career Roadmaps & Learning Resources
+api_router.include_router(roadmap.router, prefix="/roadmap", tags=["Career Roadmaps & Learning Resources"])
 
 # Health telemetry
 api_router.include_router(health.router, tags=["Health"])

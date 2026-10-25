@@ -270,6 +270,28 @@ def calculate_student_analytics(
     )
 
 
+def _compute_spearman_rank_correlation(x: List[float], y: List[float]) -> Optional[float]:
+    """Pure-Python Spearman rank correlation without third-party dependencies."""
+    n = len(x)
+    if n < 30 or len(y) != n:
+        return None
+    if len(set(x)) <= 1 or len(set(y)) <= 1:
+        return None
+
+    def get_ranks(seq: List[float]) -> List[float]:
+        sorted_indices = sorted(range(len(seq)), key=lambda i: seq[i])
+        ranks = [0.0] * len(seq)
+        for rank, idx in enumerate(sorted_indices, start=1):
+            ranks[idx] = float(rank)
+        return ranks
+
+    rx = get_ranks(x)
+    ry = get_ranks(y)
+    d_sq_sum = sum((rx[i] - ry[i]) ** 2 for i in range(n))
+    rho = 1.0 - (6.0 * d_sq_sum) / (n * (n * n - 1.0))
+    return round(float(rho), 2)
+
+
 def calculate_cohort_analytics(
     db: Session,
     institution_id: uuid.UUID,
@@ -366,8 +388,19 @@ def calculate_cohort_analytics(
     if not is_valid:
         sig_note = f"Insufficient sample size (n={sample_size} verified placed students). A minimum of n=30 verified placement records is required to evaluate non-parametric rank correlation."
     else:
-        spearman_rho = 0.64
-        sig_note = f"Sample size (n={sample_size}) meets institutional validity threshold."
+        # Calculate authentic Spearman rank correlation between measured preparation hours and verified package
+        prep_hours: List[float] = []
+        salaries: List[float] = []
+        for outcome in verified_placed_outcomes:
+            st = calculate_student_analytics(db, outcome.user_id, days=None)
+            prep_hours.append(float(st.prep_time.total_hours))
+            salaries.append(float(outcome.salary_lpa or 0.0))
+
+        spearman_rho = _compute_spearman_rank_correlation(prep_hours, salaries)
+        if spearman_rho is not None:
+            sig_note = f"Empirical Spearman rank correlation (rho={spearman_rho}) derived from n={sample_size} verified institutional records."
+        else:
+            sig_note = f"Sample size (n={sample_size}) meets count threshold, but variance is insufficient to compute non-parametric rank correlation."
 
     correlation_diag = PlacementCorrelationDiagnostic(
         sample_size=sample_size,
@@ -407,12 +440,15 @@ def export_cohort_analytics_csv(
     if not cohort:
         raise ValueError("Cohort not found")
 
+    institution = db.query(Institution).filter(Institution.id == institution_id).first()
+    inst_name = institution.name if institution else "Institutional Accreditation Report"
+
     output = io.StringIO()
     writer = csv.writer(output)
 
     writer.writerow([
         "Institution",
-        "Apex Institute of Engineering & Technology (AIET)",
+        inst_name,
         "Generated At",
         datetime.now(timezone.utc).isoformat(),
     ])

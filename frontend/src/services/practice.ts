@@ -231,3 +231,167 @@ export async function updateMistakeEntry(
     throw new Error(errorData.message || errorData.detail || 'Failed to update mistake');
   }
 }
+
+export interface QuestionOptionDetail {
+  id?: string;
+  option_text: string;
+  is_correct: boolean;
+  feedback?: string | null;
+}
+
+export interface QuestionDetail {
+  id: string;
+  skill_id: string;
+  skill_name?: string | null;
+  domain?: string | null;
+  title: string;
+  content: string;
+  question_type: string;
+  difficulty: string;
+  default_points: number;
+  explanation?: string | null;
+  status: string;
+  is_verified: boolean;
+  version: number;
+  options: QuestionOptionDetail[];
+  attempts_count: number;
+  accuracy_rate: number;
+  created_at: string;
+}
+
+export interface QuestionListResult {
+  items: QuestionDetail[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface QuestionCreateParams {
+  skill_id: string;
+  title: string;
+  content: string;
+  question_type: string;
+  difficulty: string;
+  default_points: number;
+  explanation?: string;
+  options: { option_text: string; is_correct: boolean; feedback?: string }[];
+}
+
+export interface AIQuestionGenParams {
+  domain: string;
+  topic: string;
+  subtopic?: string;
+  difficulty: string;
+  question_type: string;
+  count: number;
+  learning_objectives?: string;
+}
+
+export interface AIQuestionGenResult {
+  questions_generated: number;
+  questions: QuestionDetail[];
+  provider_used: string;
+  notice: string;
+}
+
+export async function fetchQuestionBank(params: {
+  domain?: string;
+  difficulty?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<QuestionListResult> {
+  const query = new URLSearchParams();
+  if (params.domain) query.set('domain', params.domain);
+  if (params.difficulty) query.set('difficulty', params.difficulty);
+  if (params.status) query.set('status', params.status);
+  if (params.search) query.set('search', params.search);
+  if (params.page) query.set('page', params.page.toString());
+  if (params.page_size) query.set('page_size', params.page_size.toString());
+
+  const res = await fetch(`${API_BASE}/practice/questions?${query.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to fetch question bank');
+  }
+  return res.json();
+}
+
+export async function fetchQuestionDetail(questionId: string): Promise<QuestionDetail> {
+  const res = await fetch(`${API_BASE}/practice/questions/${questionId}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to fetch question detail');
+  }
+  return res.json();
+}
+
+export async function createQuestion(data: QuestionCreateParams): Promise<QuestionDetail> {
+  const res = await fetch(`${API_BASE}/practice/questions`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to create question');
+  }
+  return res.json();
+}
+
+export async function updateQuestion(questionId: string, data: Partial<QuestionCreateParams>): Promise<QuestionDetail> {
+  const res = await fetch(`${API_BASE}/practice/questions/${questionId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to update question');
+  }
+  return res.json();
+}
+
+export async function updateQuestionStatus(questionId: string, status: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/practice/questions/${questionId}/status`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to update question status');
+  }
+}
+
+export async function bulkImportQuestions(questions: any[]): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/practice/questions/import`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ questions }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'Failed to import questions');
+  }
+  return res.json();
+}
+
+export async function generateQuestionsWithAI(payload: AIQuestionGenParams): Promise<AIQuestionGenResult> {
+  const res = await fetch(`${API_BASE}/practice/questions/generate-ai`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.detail || 'AI question generation failed');
+  }
+  return res.json();
+}
+

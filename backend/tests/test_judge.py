@@ -165,6 +165,51 @@ if lines:
     assert summary["test_cases_passed"] == 3
     assert summary["total_test_cases"] == 3
     assert len(summary["results"]) == 3
-    # Verify hidden test case masks output
     assert summary["results"][2]["input"] == "[Hidden Test Case]"
     assert summary["results"][2]["actual_output"] == "[Hidden Output]"
+
+
+def test_judge_feature_toggle_disabled(monkeypatch):
+    """When CODE_EXECUTION_ENABLED is False, judge must reject code with verdict DISABLED."""
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "CODE_EXECUTION_ENABLED", False)
+
+    result = execute_test_case(
+        language="python",
+        code="print('Hello World')",
+        input_data="",
+        expected_output="Hello World",
+        time_limit_ms=1000,
+    )
+    assert result["verdict"] == "DISABLED"
+    assert "disabled" in result["error"].lower()
+
+
+def test_judge_code_size_limit_exceeded(monkeypatch):
+    """Submissions exceeding maximum byte size must be safely rejected."""
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "CODE_EXECUTION_MAX_CODE_BYTES", 100)
+
+    large_code = "# " + ("x" * 200) + "\nprint('oversized')"
+    result = execute_test_case(
+        language="python",
+        code=large_code,
+        input_data="",
+        expected_output="",
+        time_limit_ms=1000,
+    )
+    assert result["verdict"] == "COMPILATION_ERROR"
+    assert "exceeds" in result["error"].lower()
+
+
+def test_judge_subprocess_env_sanitization():
+    """Verify clean_env never contains server secrets such as DATABASE_URL, SECRET_KEY, GEMINI_API_KEY."""
+    from app.services.judge import _get_clean_subprocess_env
+    clean = _get_clean_subprocess_env("C:\\temp\\dummy")
+    assert "DATABASE_URL" not in clean
+    assert "SECRET_KEY" not in clean
+    assert "GEMINI_API_KEY" not in clean
+    assert "TEMP" in clean
+    assert "TMP" in clean
+    assert "PYTHONIOENCODING" in clean
+

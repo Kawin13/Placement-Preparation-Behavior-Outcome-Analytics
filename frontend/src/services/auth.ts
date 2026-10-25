@@ -56,12 +56,8 @@ export interface RegisterUserPayload {
   password: string;
   full_name: string;
   institution_id: string;
-  role?: 'STUDENT' | 'TRAINER' | 'PLACEMENT_OFFICER' | 'ADMIN';
   roll_number?: string;
   cohort_id?: string;
-  employee_id?: string;
-  department_name?: string;
-  access_code?: string;
 }
 
 export interface DetectRoleResponse {

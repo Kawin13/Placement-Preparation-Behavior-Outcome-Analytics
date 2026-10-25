@@ -17,8 +17,14 @@ def seed_practice_banks():
     try:
         inst = db.query(Institution).filter(Institution.code == "AIET").first()
         if not inst:
-            print("Flagship institution AIET not found. Run seed_demo.py first.")
-            return
+            print("Creating default accredited institution AIET for development seed data...")
+            inst = Institution(
+                name="Apex Institute of Engineering & Technology",
+                code="AIET",
+                is_active=True,
+            )
+            db.add(inst)
+            db.flush()
 
         print("Ingesting Skills hierarchy...")
         # 1. Skills

@@ -43,6 +43,14 @@ def get_student_performance_analytics(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Students are restricted from viewing peer analytics records",
             )
+        target_student = db.query(User).filter(User.id == student_id).first()
+        if not target_student:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        if target_student.institution_id != current_user.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Student does not belong to your institution",
+            )
         target_id = student_id
 
     try:
@@ -68,6 +76,21 @@ def get_cohort_performance_analytics(
     """
     Returns institutional cohort analytics, participation rates, and placement correlation status.
     """
+    if cohort_id:
+        cohort = db.query(Cohort).filter(Cohort.id == cohort_id).first()
+        if not cohort or cohort.department.institution_id != current_user.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cohort not found within your institution",
+            )
+    if department_id:
+        dept = db.query(Department).filter(Department.id == department_id).first()
+        if not dept or dept.institution_id != current_user.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Department not found within your institution",
+            )
+
     try:
         analytics = calculate_cohort_analytics(
             db=db,
@@ -97,6 +120,14 @@ def get_skill_gaps_diagnostic(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Students are restricted from inspecting peer skill-gap records",
+            )
+        target_student = db.query(User).filter(User.id == student_id).first()
+        if not target_student:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        if target_student.institution_id != current_user.institution_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Student does not belong to your institution",
             )
         target_id = student_id
 

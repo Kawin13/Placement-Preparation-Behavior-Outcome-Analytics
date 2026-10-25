@@ -69,19 +69,20 @@ def register_student(
             detail="A user with this email address is already registered",
         )
 
-    # Assign requested role, defaulting to STUDENT
-    assigned_role = (payload.role or "STUDENT").strip().upper()
-    if assigned_role not in ("STUDENT", "TRAINER", "PLACEMENT_OFFICER", "ADMIN"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role must be one of: STUDENT, TRAINER, PLACEMENT_OFFICER, ADMIN",
-        )
+    # Strict anti-privilege escalation: Public self-registration ALWAYS provisions a STUDENT account
+    assigned_role = "STUDENT"
 
-    if assigned_role == "ADMIN" and payload.access_code:
-        if payload.access_code.strip() != "ADMIN2026":
+    # Validate cohort belongs to the selected institution if specified
+    cohort = None
+    if payload.cohort_id:
+        cohort = db.query(Cohort).filter(
+            Cohort.id == payload.cohort_id,
+            Cohort.department.has(institution_id=payload.institution_id),
+        ).first()
+        if not cohort:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid Administrator Access Code. Please use valid campus administrative credentials (e.g. ADMIN2026).",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Specified cohort not found within the selected institution",
             )
 
     new_user = User(
@@ -95,21 +96,14 @@ def register_student(
     db.add(new_user)
     db.flush()
 
-    # Link student profile if student role and roll number provided
-    if assigned_role == "STUDENT" and payload.roll_number:
-        cohort = None
-        if payload.cohort_id:
-            cohort = db.query(Cohort).filter(
-                Cohort.id == payload.cohort_id,
-                Cohort.department.has(institution_id=payload.institution_id)
-            ).first()
-        student_prof = StudentProfile(
-            user_id=new_user.id,
-            cohort_id=cohort.id if cohort else None,
-            roll_number=payload.roll_number.strip(),
-            placement_status="NOT_PLACED",
-        )
-        db.add(student_prof)
+    # Link student profile
+    student_prof = StudentProfile(
+        user_id=new_user.id,
+        cohort_id=cohort.id if cohort else None,
+        roll_number=payload.roll_number.strip() if payload.roll_number else None,
+        placement_status="NOT_PLACED",
+    )
+    db.add(student_prof)
 
     db.commit()
     db.refresh(new_user)
@@ -126,8 +120,7 @@ def register_student(
         details_json={
             "email": new_user.email,
             "role": new_user.role,
-            "employee_id": payload.employee_id,
-            "department_name": payload.department_name,
+            "roll_number": payload.roll_number,
         },
     )
 
@@ -151,15 +144,13 @@ def register_student(
 @router.get(
     "/detect-role",
     status_code=status.HTTP_200_OK,
-    summary="Detect User Role and Portal from Email",
-    description="Detects whether an email matches an existing user account or infers the appropriate portal based on institutional email patterns."
+    summary="Detect Suggested Portal from Email Pattern",
+    description="Infers appropriate portal suggestion based on institutional naming conventions without enumerating user accounts."
 )
 def detect_user_role(
     email: str,
-    db: Session = Depends(get_db),
 ):
     clean_email = email.strip().lower()
-    user = db.query(User).filter(User.email == clean_email).first()
 
     portal_map = {
         "STUDENT": "Student Preparation Workspace",
@@ -168,31 +159,20 @@ def detect_user_role(
         "ADMIN": "College Intelligence & Administration Console",
     }
 
-    if user:
-        return {
-            "exists": True,
-            "role": user.role,
-            "full_name": user.full_name,
-            "portal_name": portal_map.get(user.role, "Placement Portal"),
-            "is_active": user.is_active,
-        }
-
-    # If user doesn't exist yet, infer based on email conventions
-    role_inferred = None
+    # Anti-Account Enumeration: Infer portal purely from domain convention without database lookup
+    role_inferred = "STUDENT"
     if "admin" in clean_email:
         role_inferred = "ADMIN"
-    elif "trainer" in clean_email or "faculty" in clean_email or "prof" in clean_email:
+    elif any(k in clean_email for k in ("trainer", "faculty", "prof")):
         role_inferred = "TRAINER"
-    elif "officer" in clean_email or "placement" in clean_email or "tpo" in clean_email:
+    elif any(k in clean_email for k in ("officer", "placement", "tpo")):
         role_inferred = "PLACEMENT_OFFICER"
-    elif "student" in clean_email:
-        role_inferred = "STUDENT"
 
     return {
         "exists": False,
         "role": role_inferred,
         "full_name": None,
-        "portal_name": portal_map.get(role_inferred, None) if role_inferred else None,
+        "portal_name": portal_map.get(role_inferred, "Placement Portal"),
         "is_active": True,
     }
 

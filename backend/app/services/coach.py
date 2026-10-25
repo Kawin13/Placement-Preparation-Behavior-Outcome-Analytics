@@ -75,7 +75,11 @@ def explain_student_mistake(
                 f"Do not invent facts outside this syllabus question."
             )
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent"
+            headers = {
+                "x-goog-api-key": api_key,
+                "Content-Type": "application/json",
+            }
             payload = {
                 "contents": [
                     {
@@ -89,7 +93,7 @@ def explain_student_mistake(
             }
 
             with httpx.Client(timeout=settings.AI_TIMEOUT_SECONDS) as client:
-                res = client.post(url, json=payload)
+                res = client.post(url, headers=headers, json=payload)
                 if res.status_code == 200:
                     data = res.json()
                     candidates = data.get("candidates", [])

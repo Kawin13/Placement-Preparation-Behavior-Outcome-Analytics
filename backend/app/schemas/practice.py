@@ -44,6 +44,92 @@ class QuestionCreate(BaseModel):
     options: List[OptionCreate] = Field(default_factory=list)
 
 
+class QuestionOptionDetail(BaseModel):
+    id: Optional[uuid.UUID] = None
+    option_text: str
+    is_correct: bool = False
+    feedback: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionDetailResponse(BaseModel):
+    id: uuid.UUID
+    skill_id: uuid.UUID
+    skill_name: Optional[str] = None
+    domain: Optional[str] = None
+    title: str
+    content: str
+    question_type: str
+    difficulty: str
+    default_points: int
+    explanation: Optional[str] = None
+    status: str
+    is_verified: bool
+    version: int
+    options: List[QuestionOptionDetail] = Field(default_factory=list)
+    attempts_count: int = 0
+    accuracy_rate: float = 0.0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionListResponse(BaseModel):
+    items: List[QuestionDetailResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class QuestionUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=3, max_length=255)
+    content: Optional[str] = Field(None, min_length=5)
+    question_type: Optional[str] = Field(None, pattern="^(MCQ_SINGLE|MCQ_MULTI|NUMERICAL|CODE|SQL|SUBJECTIVE)$")
+    difficulty: Optional[str] = Field(None, pattern="^(EASY|MEDIUM|HARD)$")
+    default_points: Optional[int] = Field(None, ge=1, le=100)
+    explanation: Optional[str] = None
+    skill_id: Optional[uuid.UUID] = None
+    options: Optional[List[OptionCreate]] = None
+
+
+class QuestionStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(DRAFT|PUBLISHED|ARCHIVED)$")
+
+
+class QuestionBulkImportItem(BaseModel):
+    title: str = Field(..., min_length=3, max_length=255)
+    content: str = Field(..., min_length=5)
+    skill_name: Optional[str] = None
+    domain: Optional[str] = Field("QUANT", pattern="^(QUANT|LOGICAL|VERBAL|PROGRAMMING|SQL|TECH_CORE|HR)$")
+    question_type: str = Field("MCQ_SINGLE")
+    difficulty: str = Field("MEDIUM")
+    default_points: int = Field(1, ge=1, le=100)
+    explanation: Optional[str] = None
+    options: List[OptionCreate] = Field(default_factory=list)
+
+
+class QuestionBulkImportRequest(BaseModel):
+    questions: List[QuestionBulkImportItem]
+
+
+class AIQuestionGenerationRequest(BaseModel):
+    domain: str = Field(..., pattern="^(QUANT|LOGICAL|VERBAL|PROGRAMMING|SQL|TECH_CORE|HR)$")
+    topic: str = Field(..., min_length=2, max_length=150)
+    subtopic: Optional[str] = Field(None, max_length=150)
+    difficulty: str = Field("MEDIUM", pattern="^(EASY|MEDIUM|HARD)$")
+    question_type: str = Field("MCQ_SINGLE", pattern="^(MCQ_SINGLE|MCQ_MULTI|NUMERICAL)$")
+    count: int = Field(3, ge=1, le=10)
+    learning_objectives: Optional[str] = Field(None, max_length=500)
+
+
+class AIQuestionGenerationResponse(BaseModel):
+    questions_generated: int
+    questions: List[QuestionDetailResponse]
+    provider_used: str
+    notice: str
+
+
 class CandidateQuestionResponse(BaseModel):
     """Question payload for active assessment session (no correct answers or explanations)."""
     id: uuid.UUID

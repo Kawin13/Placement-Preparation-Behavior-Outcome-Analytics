@@ -27,7 +27,6 @@ import {
   Sparkles,
   ArrowRight,
   Loader2,
-  Key,
 } from 'lucide-react';
 
 export interface AuthModalProps {
@@ -37,84 +36,6 @@ export interface AuthModalProps {
   initialMode?: 'signin' | 'register';
 }
 
-type UserRole = 'STUDENT' | 'TRAINER' | 'PLACEMENT_OFFICER' | 'ADMIN';
-
-interface RoleConfig {
-  role: UserRole;
-  title: string;
-  shortLabel: string;
-  portalName: string;
-  description: string;
-  badge: string;
-  icon: React.ComponentType<{ className?: string }>;
-  accentColor: string;
-  idFieldLabel: string;
-  idFieldPlaceholder: string;
-  deptFieldLabel: string;
-  deptFieldPlaceholder: string;
-  requiresAccessCode?: boolean;
-}
-
-const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
-  STUDENT: {
-    role: 'STUDENT',
-    title: 'Student Learner',
-    shortLabel: 'Student',
-    portalName: 'Student Preparation Workspace',
-    description: 'Timed drills, cognitive analytics & AI readiness coaching',
-    badge: 'Undergraduate / Postgrad',
-    icon: GraduationCap,
-    accentColor: '#FF5B3D',
-    idFieldLabel: 'Roll Number / Student Registration ID',
-    idFieldPlaceholder: 'e.g. 26CS042 or USN101',
-    deptFieldLabel: 'Academic Department / Major',
-    deptFieldPlaceholder: 'e.g. Computer Science & Engineering',
-  },
-  TRAINER: {
-    role: 'TRAINER',
-    title: 'Faculty & Technical Trainer',
-    shortLabel: 'Trainer',
-    portalName: 'Trainer & Faculty Portal',
-    description: 'Cohort skill tracking, attendance & drill effectiveness',
-    badge: 'Faculty / Mentor',
-    icon: BookOpen,
-    accentColor: '#4F46E5',
-    idFieldLabel: 'Faculty Employee ID',
-    idFieldPlaceholder: 'e.g. FAC-2026-88',
-    deptFieldLabel: 'Training Track / Domain',
-    deptFieldPlaceholder: 'e.g. Quantitative Aptitude & Data Structures',
-  },
-  PLACEMENT_OFFICER: {
-    role: 'PLACEMENT_OFFICER',
-    title: 'Placement Officer',
-    shortLabel: 'Placement Cell',
-    portalName: 'Placement Operations Ledger',
-    description: 'Drive management, offer verification & verified audit ledger',
-    badge: 'Career Services',
-    icon: Briefcase,
-    accentColor: '#059669',
-    idFieldLabel: 'Placement Staff ID',
-    idFieldPlaceholder: 'e.g. TPO-8812',
-    deptFieldLabel: 'Placement Division / Cell',
-    deptFieldPlaceholder: 'e.g. Corporate Relations & Career Center',
-  },
-  ADMIN: {
-    role: 'ADMIN',
-    title: 'College Administrator',
-    shortLabel: 'Administrator',
-    portalName: 'College Intelligence & Administration Console',
-    description: 'Institution-wide metrics, system audit events & governance',
-    badge: 'Governance / Leadership',
-    icon: Shield,
-    accentColor: '#292444',
-    idFieldLabel: 'Administrator Staff ID',
-    idFieldPlaceholder: 'e.g. ADM-001',
-    deptFieldLabel: 'Office / Directorate',
-    deptFieldPlaceholder: 'e.g. Office of the Dean / Director',
-    requiresAccessCode: true,
-  },
-};
-
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
@@ -122,7 +43,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'signin',
 }) => {
   const [mode, setMode] = useState<'signin' | 'register' | 'forgot'>(initialMode);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('STUDENT');
 
   // Common Fields
   const [email, setEmail] = useState('');
@@ -130,12 +50,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [fullName, setFullName] = useState('');
   const [institutionId, setInstitutionId] = useState('');
   const [institutions, setInstitutions] = useState<InstitutionItem[]>([]);
-
-  // Role-Specific Fields
   const [rollNumber, setRollNumber] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
-  const [departmentName, setDepartmentName] = useState('');
-  const [accessCode, setAccessCode] = useState('');
 
   // Status & Live Detection State
   const [isLoading, setIsLoading] = useState(false);
@@ -203,8 +118,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentRoleCfg = ROLE_CONFIGS[selectedRole];
-
   const handleQuickFill = (demoEmail: string, demoPass: string) => {
     setEmail(demoEmail);
     setPassword(demoPass);
@@ -232,11 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           password,
           full_name: fullName.trim(),
           institution_id: institutionId,
-          role: selectedRole,
-          roll_number: selectedRole === 'STUDENT' ? rollNumber.trim() : undefined,
-          employee_id: selectedRole !== 'STUDENT' ? employeeId.trim() : undefined,
-          department_name: departmentName.trim() || undefined,
-          access_code: selectedRole === 'ADMIN' ? accessCode.trim() : undefined,
+          roll_number: rollNumber.trim() || undefined,
         };
 
         const res = await registerUser(payload);
@@ -341,63 +250,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ===================== REGISTRATION MODE ===================== */}
+          {/* ===================== REGISTRATION MODE (STUDENT ONLY) ===================== */}
           {mode === 'register' && (
             <>
-              {/* Role Selection Grid */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#5E5875] mb-2">
-                  Select Your Institutional Role
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(ROLE_CONFIGS) as UserRole[]).map((rKey) => {
-                    const cfg = ROLE_CONFIGS[rKey];
-                    const IconComponent = cfg.icon;
-                    const isSelected = selectedRole === rKey;
-                    return (
-                      <button
-                        key={rKey}
-                        type="button"
-                        onClick={() => setSelectedRole(rKey)}
-                        className={`text-left p-3 rounded-2xl border transition-all relative ${
-                          isSelected
-                            ? 'bg-[#FAF6ED] border-[#FF5B3D] shadow-xs ring-1 ring-[#FF5B3D]'
-                            : 'bg-white border-[#E8E0D2] hover:border-[#8E879E]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <div
-                            className={`p-1.5 rounded-lg text-white`}
-                            style={{ backgroundColor: cfg.accentColor }}
-                          >
-                            <IconComponent className="w-3.5 h-3.5" />
-                          </div>
-                          <span className="font-bold text-xs text-[#292444] line-clamp-1">
-                            {cfg.shortLabel}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-[#5E5875] line-clamp-1">
-                          {cfg.portalName}
-                        </p>
-                      </button>
-                    );
-                  })}
+              {/* Student Portal Notice */}
+              <div className="p-3.5 rounded-2xl bg-[#FAF6ED] border border-[#E8E0D2] text-xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] uppercase font-bold text-[#FF5B3D] tracking-wider">
+                    Student Preparation Portal
+                  </span>
                 </div>
-
-                {/* Target Portal Confirmation Banner */}
-                <div className="mt-2.5 p-2.5 rounded-xl bg-[#FAF6ED] border border-[#E8E0D2] flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-bold text-[#FF5B3D] tracking-wider">
-                      Assigned Portal:
-                    </span>
-                    <span className="font-extrabold text-[#292444]">
-                      {currentRoleCfg.portalName}
-                    </span>
-                  </div>
-                  <Badge variant="neutral" className="text-[10px] py-0 px-2">
-                    {selectedRole}
-                  </Badge>
-                </div>
+                <p className="text-[11px] text-[#5E5875] leading-relaxed">
+                  Self-registration is available for students. Faculty, Trainer, and Placement Officer credentials are securely provisioned by your campus administrator.
+                </p>
               </div>
 
               {/* Full Name */}
@@ -435,77 +300,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
 
-              {/* Dynamic Role-Specific Fields */}
-              {selectedRole === 'STUDENT' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label={currentRoleCfg.idFieldLabel}
-                    placeholder={currentRoleCfg.idFieldPlaceholder}
-                    value={rollNumber}
-                    onChange={(e) => setRollNumber(e.target.value)}
-                    leftIcon={<Building className="w-4 h-4" />}
-                  />
-                  <Input
-                    label={currentRoleCfg.deptFieldLabel}
-                    placeholder={currentRoleCfg.deptFieldPlaceholder}
-                    value={departmentName}
-                    onChange={(e) => setDepartmentName(e.target.value)}
-                    leftIcon={<BookOpen className="w-4 h-4" />}
-                  />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    label={currentRoleCfg.idFieldLabel}
-                    placeholder={currentRoleCfg.idFieldPlaceholder}
-                    required
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    leftIcon={<Building className="w-4 h-4" />}
-                  />
-                  <Input
-                    label={currentRoleCfg.deptFieldLabel}
-                    placeholder={currentRoleCfg.deptFieldPlaceholder}
-                    value={departmentName}
-                    onChange={(e) => setDepartmentName(e.target.value)}
-                    leftIcon={<BookOpen className="w-4 h-4" />}
-                  />
-                </div>
-              )}
-
-              {/* Admin Access Code Verification */}
-              {selectedRole === 'ADMIN' && (
-                <div>
-                  <Input
-                    label="Administrator Verification Key"
-                    placeholder="Enter security access code (e.g. ADMIN2026)"
-                    required
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
-                    leftIcon={<Key className="w-4 h-4" />}
-                    helperText="Campus security key required for administrator account provisioning."
-                  />
-                </div>
-              )}
+              {/* Student Roll Number (Optional) */}
+              <div>
+                <Input
+                  label="Roll / Registration Number (Optional)"
+                  placeholder="e.g. 26CS001"
+                  value={rollNumber}
+                  onChange={(e) => setRollNumber(e.target.value)}
+                  leftIcon={<Building className="w-4 h-4" />}
+                />
+              </div>
             </>
           )}
 
           {/* ===================== SIGN-IN / COMMON EMAIL ===================== */}
           <div>
             <Input
-              label={
-                mode === 'register'
-                  ? selectedRole === 'STUDENT'
-                    ? 'Student Email'
-                    : 'Institutional Email'
-                  : 'Email Address'
-              }
+              label={mode === 'register' ? 'Student Email' : 'Email Address'}
               type="email"
-              placeholder={
-                mode === 'register'
-                  ? `${selectedRole.toLowerCase()}@college.edu`
-                  : 'student@college.edu / officer@college.edu'
-              }
+              placeholder={mode === 'register' ? 'student@college.edu' : 'student@college.edu / officer@college.edu'}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -653,7 +466,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </>
               ) : mode === 'register' ? (
                 <>
-                  <span>Complete {currentRoleCfg.shortLabel} Registration</span>
+                  <span>Complete Student Registration</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               ) : (

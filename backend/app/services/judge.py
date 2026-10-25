@@ -18,6 +18,23 @@ import sys
 import tempfile
 import time
 from typing import Any, Dict, List, Optional
+from app.core.config import settings
+
+
+def _get_clean_subprocess_env(work_dir: str) -> Dict[str, str]:
+    """
+    Constructs an isolated, sanitized environment containing ZERO server secrets.
+    Removes DATABASE_URL, SECRET_KEY, GEMINI_API_KEY, and all backend environment variables.
+    """
+    return {
+        "PATH": os.environ.get("PATH", ""),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
+        "TEMP": work_dir,
+        "TMP": work_dir,
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONHASHSEED": "0",
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
 
 # Banned modules and builtins for Python submissions
 PYTHON_BANNED_MODULES = {
@@ -132,8 +149,35 @@ def execute_python_code(
     time_limit_sec: float = 3.0,
     max_output_bytes: int = 65536,
 ) -> Dict[str, Any]:
-    """Executes Python code in an isolated directory with stdin piping and timeout limits."""
-    # 1. Security Check
+    """Executes Python code in an isolated directory with stdin piping, clean environment, and timeout limits."""
+    # 0. Feature Toggle Check
+    if not settings.CODE_EXECUTION_ENABLED:
+        return {
+            "verdict": "DISABLED",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": "Untrusted programming code execution is disabled by administrator policy.",
+        }
+
+    # 1. Size Limits Check
+    encoded_code = code.encode("utf-8")
+    if len(encoded_code) > settings.CODE_EXECUTION_MAX_CODE_BYTES:
+        return {
+            "verdict": "COMPILATION_ERROR",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": f"Source code length exceeds maximum permissible limit ({settings.CODE_EXECUTION_MAX_CODE_BYTES} bytes).",
+        }
+
+    if len(input_data.encode("utf-8")) > 1048576:
+        return {
+            "verdict": "RUNTIME_ERROR",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": "Input data length exceeds maximum permissible limit (1 MB).",
+        }
+
+    # 2. Security Static Validation Check
     try:
         validate_python_security(code)
     except (SyntaxError, SecurityValidationError) as e:
@@ -151,11 +195,13 @@ def execute_python_code(
             f.write(code)
 
         python_bin = sys.executable
+        clean_env = _get_clean_subprocess_env(work_dir)
 
         start_time = time.perf_counter()
         proc = subprocess.Popen(
             [python_bin, "solution.py"],
             cwd=work_dir,
+            env=clean_env,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -211,8 +257,35 @@ def execute_java_code(
     compile_limit_sec: float = 5.0,
     max_output_bytes: int = 65536,
 ) -> Dict[str, Any]:
-    """Compiles and executes Java code in a temp directory with strict resource limits."""
-    # 1. Security Check
+    """Compiles and executes Java code in a temp directory with strict resource limits and sanitized environment."""
+    # 0. Feature Toggle Check
+    if not settings.CODE_EXECUTION_ENABLED:
+        return {
+            "verdict": "DISABLED",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": "Untrusted programming code execution is disabled by administrator policy.",
+        }
+
+    # 1. Size Limits Check
+    encoded_code = code.encode("utf-8")
+    if len(encoded_code) > settings.CODE_EXECUTION_MAX_CODE_BYTES:
+        return {
+            "verdict": "COMPILATION_ERROR",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": f"Source code length exceeds maximum permissible limit ({settings.CODE_EXECUTION_MAX_CODE_BYTES} bytes).",
+        }
+
+    if len(input_data.encode("utf-8")) > 1048576:
+        return {
+            "verdict": "RUNTIME_ERROR",
+            "runtime_ms": 0,
+            "stdout": "",
+            "error": "Input data length exceeds maximum permissible limit (1 MB).",
+        }
+
+    # 2. Security Check
     try:
         validate_java_security(code)
     except SecurityValidationError as e:
@@ -229,11 +302,14 @@ def execute_java_code(
         with open(source_path, "w", encoding="utf-8") as f:
             f.write(code)
 
-        # 2. Compile with javac
+        clean_env = _get_clean_subprocess_env(work_dir)
+
+        # 3. Compile with javac
         compile_start = time.perf_counter()
         compile_proc = subprocess.run(
             ["javac", "-encoding", "UTF-8", "Main.java"],
             cwd=work_dir,
+            env=clean_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -250,11 +326,12 @@ def execute_java_code(
                 "error": compile_proc.stderr.strip() if compile_proc.stderr else "Compilation failed",
             }
 
-        # 3. Execute with java
+        # 4. Execute with java
         start_time = time.perf_counter()
         run_proc = subprocess.Popen(
-            ["java", "-Xmx256m", "-cp", ".", "Main"],
+            ["java", "-Xmx128m", "-cp", ".", "Main"],
             cwd=work_dir,
+            env=clean_env,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
