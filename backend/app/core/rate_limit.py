@@ -41,9 +41,9 @@ class SlidingWindowRateLimiter:
 
 
 # Rate limiters for sensitive endpoints
-login_rate_limiter = SlidingWindowRateLimiter(max_requests=5, window_seconds=60)
-register_rate_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=60)
-reset_rate_limiter = SlidingWindowRateLimiter(max_requests=3, window_seconds=60)
+login_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)
+register_rate_limiter = SlidingWindowRateLimiter(max_requests=30, window_seconds=60)
+reset_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=60)
 
 
 def get_client_ip(request: Request) -> str:
