@@ -98,6 +98,15 @@ export interface TopicDSAProblem {
   status: 'UNSOLVED' | 'ATTEMPTED' | 'SOLVED';
 }
 
+export interface TopicAssessmentInfo {
+  id: string;
+  title: string;
+  duration_minutes: number;
+  passing_score?: number | null;
+  questions_count: number;
+  category?: string | null;
+}
+
 export interface TopicDetail {
   id: string;
   subject_name: string;
@@ -115,6 +124,7 @@ export interface TopicDetail {
   resources: LearningResourceSummary[];
   practice_questions: TopicPracticeQuestion[];
   dsa_problems: TopicDSAProblem[];
+  assessment?: TopicAssessmentInfo | null;
   recommended_next_step: string;
 }
 
@@ -160,8 +170,11 @@ export async function fetchMyCareerGoal(): Promise<StudentCareerGoal | null> {
   return res.json();
 }
 
-export async function fetchRoadmapTree(): Promise<RoadmapTree> {
-  const res = await fetch(`${API_BASE}/roadmap/tree`, {
+export async function fetchRoadmapTree(careerPathId?: string): Promise<RoadmapTree> {
+  const url = careerPathId
+    ? `${API_BASE}/roadmap/tree?career_path_id=${careerPathId}`
+    : `${API_BASE}/roadmap/tree`;
+  const res = await fetch(url, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) {

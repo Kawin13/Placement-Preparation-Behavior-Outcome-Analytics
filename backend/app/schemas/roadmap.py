@@ -73,6 +73,7 @@ class RoadmapTopicSummary(BaseModel):
     dsa_problems_count: int = 0
     completion_percentage: int = 0
     status: str = "NOT_STARTED"
+    assessment_id: Optional[uuid.UUID] = None
 
 
 class RoadmapSubjectTree(BaseModel):
@@ -98,9 +99,13 @@ class RoadmapTreeResponse(BaseModel):
 class TopicPracticeQuestionItem(BaseModel):
     id: uuid.UUID
     title: str
+    content: Optional[str] = None
     difficulty: str
-    question_type: str
-    default_points: int
+    question_type: str = "MCQ_SINGLE"
+    points: int = 2
+    attempts_count: int = 0
+    user_accuracy: Optional[float] = None
+    is_solved: bool = False
 
 
 class TopicDSAProblemItem(BaseModel):
@@ -110,6 +115,15 @@ class TopicDSAProblemItem(BaseModel):
     title: str
     difficulty: str
     status: str = "UNSOLVED"  # UNSOLVED, ATTEMPTED, SOLVED
+
+
+class TopicAssessmentInfo(BaseModel):
+    id: uuid.UUID
+    title: str
+    duration_minutes: int
+    passing_score: Optional[float] = None
+    questions_count: int
+    category: Optional[str] = None
 
 
 class TopicDetailResponse(BaseModel):
@@ -125,12 +139,16 @@ class TopicDetailResponse(BaseModel):
     resources: List[LearningResourceSummary]
     practice_questions: List[TopicPracticeQuestionItem]
     dsa_problems: List[TopicDSAProblemItem]
+    assessment: Optional[TopicAssessmentInfo] = None
     completion_percentage: int
     status: str
     questions_attempted: int
     questions_correct: int
     coding_problems_solved: int
     resources_completed: int
+    accuracy_rate: int = 0
+    evidence_confidence: str = "INSUFFICIENT"
+    recommended_next_step: Optional[str] = None
 
 
 class TrackEventRequest(BaseModel):

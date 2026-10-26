@@ -84,6 +84,7 @@ class RoadmapTopic(Base):
     display_order = Column(Integer, default=0, nullable=False)
     skill_id = Column(UUID(as_uuid=True), ForeignKey("skills.id", ondelete="SET NULL"), nullable=True, index=True)
     dsa_topic_id = Column(UUID(as_uuid=True), ForeignKey("dsa_topics.id", ondelete="SET NULL"), nullable=True, index=True)
+    assessment_id = Column(UUID(as_uuid=True), ForeignKey("assessments.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     subject = relationship("RoadmapSubject", back_populates="topics")
@@ -100,6 +101,7 @@ class RoadmapTopic(Base):
     )
     skill = relationship("Skill")
     dsa_topic = relationship("DSATopic")
+    assessment = relationship("Assessment")
 
     __table_args__ = (
         CheckConstraint("difficulty IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED')", name="chk_roadmap_topic_difficulty"),

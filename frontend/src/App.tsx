@@ -254,7 +254,15 @@ export function App() {
                   setSelectedDsaSlug(slug);
                   setViewMode('dsa');
                 }}
-                onPracticeQuestions={() => setViewMode('practice')}
+                onPracticeQuestions={(topicName) => {
+                  if (topicName) {
+                    setSelectedPracticeTopic(topicName);
+                  }
+                  setViewMode('practice');
+                }}
+                onStartAssessment={(assessmentId) => {
+                  handleStartSession(assessmentId, 'PRACTICE');
+                }}
               />
             ) : (
               <CareerRoadmapView

@@ -11,6 +11,10 @@ import {
   AlertCircle,
   RefreshCw,
   Check,
+  PlayCircle,
+  Award,
+  CheckCircle2,
+  HelpCircle,
 } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -29,7 +33,8 @@ interface TopicDetailViewProps {
   topicId: string;
   onBack: () => void;
   onSelectDsaProblem?: (slug: string) => void;
-  onPracticeQuestions?: () => void;
+  onPracticeQuestions?: (topicName?: string) => void;
+  onStartAssessment?: (assessmentId: string) => void;
 }
 
 export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
@@ -37,6 +42,7 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
   onBack,
   onSelectDsaProblem,
   onPracticeQuestions,
+  onStartAssessment,
 }) => {
   const [topic, setTopic] = useState<TopicDetail | null>(null);
   const [activeTab, setActiveTab] = useState<'materials' | 'practice' | 'dsa'>('materials');
@@ -161,17 +167,27 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {topic.practice_questions.length > 0 && onPracticeQuestions && (
+            {topic.assessment && onStartAssessment ? (
+              <Button
+                variant="primary"
+                size="sm"
+                rightIcon={<PlayCircle className="w-4 h-4" />}
+                onClick={() => onStartAssessment(topic.assessment!.id)}
+                className="font-bold shadow-warm bg-[#FF5B3D] text-white hover:bg-[#e0482b]"
+              >
+                Take Topic Assessment
+              </Button>
+            ) : topic.practice_questions.length > 0 && onPracticeQuestions ? (
               <Button
                 variant="primary"
                 size="sm"
                 rightIcon={<Brain className="w-3.5 h-3.5" />}
-                onClick={onPracticeQuestions}
+                onClick={() => onPracticeQuestions(topic.name)}
                 className="font-bold shadow-warm"
               >
                 Practise Questions
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -227,6 +243,66 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
           <p className="text-xs sm:text-sm text-[#5E5875] leading-relaxed whitespace-pre-line">
             {topic.learning_objectives}
           </p>
+        </Card>
+      )}
+
+      {/* Verified GeeksforGeeks Placement Assessment Banner */}
+      {topic.assessment && (
+        <Card className="p-6 bg-gradient-to-br from-[#292444] to-[#1c1830] text-white rounded-2xl shadow-warm-lg border border-[#3e3765]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FF5B3D] text-white uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  Verified GFG Assessment
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-emerald-300">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Authentic Placement Patterns
+                </span>
+              </div>
+              <h3 className="text-xl font-bold font-display text-white">
+                {topic.assessment.title}
+              </h3>
+              <p className="text-xs text-[#E8E0D2]/80 max-w-xl leading-relaxed">
+                Diagnostic placement assessment referencing GeeksforGeeks placement patterns. Real question scenarios, code analysis, edge cases, and comprehensive explanations.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-[#E8E0D2]/70 pt-1">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#FF5B3D]" />
+                  {topic.assessment.duration_minutes} Minutes
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <HelpCircle className="w-3.5 h-3.5 text-[#FF5B3D]" />
+                  {topic.assessment.questions_count} GFG Placement Questions
+                </span>
+                {topic.assessment.passing_score && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                      <Award className="w-3.5 h-3.5" />
+                      Passing Score: {topic.assessment.passing_score}%
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0">
+              {onStartAssessment && (
+                <Button
+                  variant="primary"
+                  size="md"
+                  rightIcon={<PlayCircle className="w-4 h-4" />}
+                  onClick={() => onStartAssessment(topic.assessment!.id)}
+                  className="bg-[#FF5B3D] hover:bg-[#ff4724] text-white font-bold shadow-warm border-none px-6 py-2.5"
+                >
+                  Start Assessment Drill
+                </Button>
+              )}
+            </div>
+          </div>
         </Card>
       )}
 
@@ -339,6 +415,35 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
       {/* Tab 2: Practice Questions */}
       {activeTab === 'practice' && (
         <div className="space-y-4">
+          {topic.assessment && (
+            <div className="p-4 bg-[#FAF6ED] border border-[#E8E0D2] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#292444] flex items-center justify-center text-white font-bold text-xs">
+                  GFG
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#292444]">
+                    GeeksforGeeks Verified Placement Assessment Drill
+                  </h4>
+                  <p className="text-[11px] text-[#5E5875]">
+                    {topic.assessment.questions_count} questions • {topic.assessment.duration_minutes} min duration
+                  </p>
+                </div>
+              </div>
+              {onStartAssessment && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  rightIcon={<PlayCircle className="w-3.5 h-3.5" />}
+                  onClick={() => onStartAssessment(topic.assessment!.id)}
+                  className="font-bold text-xs"
+                >
+                  Take Full Assessment
+                </Button>
+              )}
+            </div>
+          )}
+
           {topic.practice_questions.length === 0 ? (
             <div className="p-8 text-center border border-dashed border-[#E8E0D2] rounded-2xl bg-white">
               <Brain className="w-8 h-8 text-[#8E879E] mx-auto mb-2" />
@@ -348,33 +453,46 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
             <div className="divide-y divide-[#E8E0D2] border border-[#E8E0D2] bg-white rounded-2xl overflow-hidden shadow-xs">
               {topic.practice_questions.map((q, idx) => (
                 <div key={q.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FAF6ED]/40 transition-colors">
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 flex-1">
                     <span className="text-xs font-bold text-[#8E879E] mt-0.5">
                       #{idx + 1}
                     </span>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-sm font-bold text-[#292444]">{q.title}</span>
                         <Badge variant="neutral" className="text-[10px]">
                           {q.difficulty}
                         </Badge>
                         <span className="text-[11px] text-[#8E879E]">{q.points} pt</span>
                       </div>
-                      <p className="text-xs text-[#5E5875] line-clamp-1">{q.content}</p>
+                      {q.content && (
+                        <p className="text-xs text-[#5E5875] line-clamp-2 font-mono bg-[#FAF6ED]/60 p-2 rounded border border-[#E8E0D2]/50 mt-1 max-w-3xl whitespace-pre-line">
+                          {q.content}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end sm:self-center">
+                  <div className="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                     {q.attempts_count > 0 && (
                       <span className="text-xs font-semibold text-emerald-700">
                         {q.user_accuracy !== null ? `${q.user_accuracy}% accurate` : 'Attempted'}
                       </span>
                     )}
-                    {onPracticeQuestions && (
+                    {topic.assessment && onStartAssessment ? (
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={onPracticeQuestions}
+                        onClick={() => onStartAssessment(topic.assessment!.id)}
+                        className="text-xs font-semibold"
+                      >
+                        Start Drill
+                      </Button>
+                    ) : onPracticeQuestions && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onPracticeQuestions(topic.name)}
                         className="text-xs font-semibold"
                       >
                         Practise

@@ -21,6 +21,7 @@ from app.models.roadmap import (
 from app.models.practice import MistakeNotebookEntry, AttemptRecord
 from app.models.question import Question
 from app.models.dsa import DSAProblem, DSAUserProgress
+from app.models.assessment import Assessment, AssessmentQuestion
 from app.schemas.roadmap import (
     CareerPathResponse,
     SelectCareerGoalRequest,
@@ -30,6 +31,7 @@ from app.schemas.roadmap import (
     RoadmapTopicSummary,
     RoadmapSubjectTree,
     RoadmapTreeResponse,
+    TopicAssessmentInfo,
     TopicDetailResponse,
     TopicPracticeQuestionItem,
     TopicDSAProblemItem,
@@ -178,12 +180,14 @@ def get_roadmap_tree(
         for t in s.topics:
             total_topics += 1
             res_count = len(t.resources)
-            # Count practice questions matching skill or category
+            # Count practice questions matching assessment or skill
             q_count = 0
-            if t.skill_id:
+            if t.assessment_id:
+                q_count = db.query(func.count(AssessmentQuestion.id)).filter(AssessmentQuestion.assessment_id == t.assessment_id).scalar() or 0
+            elif t.skill_id:
                 q_count = db.query(func.count(Question.id)).filter(Question.skill_id == t.skill_id).scalar() or 0
             else:
-                q_count = 5
+                q_count = 3
 
             # Count DSA problems
             dsa_count = 0
@@ -214,6 +218,7 @@ def get_roadmap_tree(
                     dsa_problems_count=dsa_count,
                     completion_percentage=pct,
                     status=status_val,
+                    assessment_id=t.assessment_id,
                 )
             )
 
@@ -282,30 +287,84 @@ def get_topic_detail(
         for r in topic.resources if r.status == "PUBLISHED"
     ]
 
-    # Fetch practice questions
+    # Fetch assessment info & questions
+    assessment_info = None
     questions = []
-    if topic.skill_id:
-        raw_qs = db.query(Question).filter(Question.skill_id == topic.skill_id, Question.status == "PUBLISHED").limit(10).all()
-        for q in raw_qs:
+
+    # 1. Lookup assessment via topic.assessment or Assessment.topic == topic.name
+    assessment_obj = topic.assessment
+    if not assessment_obj and topic.assessment_id:
+        assessment_obj = db.query(Assessment).filter(Assessment.id == topic.assessment_id).first()
+    if not assessment_obj:
+        assessment_obj = db.query(Assessment).filter(
+            Assessment.topic == topic.name,
+            Assessment.is_published == True
+        ).first()
+
+    if assessment_obj:
+        aq_links = db.query(AssessmentQuestion).filter(
+            AssessmentQuestion.assessment_id == assessment_obj.id
+        ).order_by(AssessmentQuestion.order_index).all()
+
+        assessment_info = TopicAssessmentInfo(
+            id=assessment_obj.id,
+            title=assessment_obj.title,
+            duration_minutes=assessment_obj.duration_minutes,
+            passing_score=float(assessment_obj.passing_score) if assessment_obj.passing_score is not None else None,
+            questions_count=len(aq_links),
+            category=assessment_obj.category,
+        )
+
+        for aq in aq_links:
+            q = aq.question
+            if not q:
+                continue
+            attempts = db.query(AttemptRecord).filter(
+                AttemptRecord.user_id == current_user.id,
+                AttemptRecord.question_id == q.id
+            ).all()
+            attempts_cnt = len(attempts)
+            correct_cnt = sum(1 for a in attempts if a.is_correct)
+            user_acc = round((correct_cnt / attempts_cnt) * 100, 1) if attempts_cnt > 0 else None
+            is_solved = correct_cnt > 0
+
             questions.append(
                 TopicPracticeQuestionItem(
                     id=q.id,
                     title=q.title,
+                    content=q.content,
                     difficulty=q.difficulty,
-                    question_type=q.question_type,
-                    default_points=q.default_points,
+                    question_type=q.question_type or "MCQ_SINGLE",
+                    points=aq.points or q.default_points or 2,
+                    attempts_count=attempts_cnt,
+                    user_accuracy=user_acc,
+                    is_solved=is_solved,
                 )
             )
-    if not questions:
-        raw_qs = db.query(Question).filter(Question.status == "PUBLISHED").limit(5).all()
+
+    # Fallback to skill_id if no assessment questions found
+    if not questions and topic.skill_id:
+        raw_qs = db.query(Question).filter(Question.skill_id == topic.skill_id, Question.status == "PUBLISHED").limit(10).all()
         for q in raw_qs:
+            attempts = db.query(AttemptRecord).filter(
+                AttemptRecord.user_id == current_user.id,
+                AttemptRecord.question_id == q.id
+            ).all()
+            attempts_cnt = len(attempts)
+            correct_cnt = sum(1 for a in attempts if a.is_correct)
+            user_acc = round((correct_cnt / attempts_cnt) * 100, 1) if attempts_cnt > 0 else None
+            is_solved = correct_cnt > 0
             questions.append(
                 TopicPracticeQuestionItem(
                     id=q.id,
                     title=q.title,
+                    content=q.content,
                     difficulty=q.difficulty,
-                    question_type=q.question_type,
-                    default_points=q.default_points,
+                    question_type=q.question_type or "MCQ_SINGLE",
+                    points=q.default_points or 2,
+                    attempts_count=attempts_cnt,
+                    user_accuracy=user_acc,
+                    is_solved=is_solved,
                 )
             )
 
@@ -336,6 +395,21 @@ def get_topic_detail(
         StudentTopicProgress.topic_id == topic.id,
     ).first()
 
+    q_attempted = prog.questions_attempted if prog else 0
+    q_correct = prog.questions_correct if prog else 0
+    accuracy = int((q_correct / q_attempted) * 100) if q_attempted > 0 else 0
+
+    if q_attempted >= 5:
+        evidence_conf = "HIGH"
+    elif q_attempted >= 2:
+        evidence_conf = "MODERATE"
+    elif q_attempted >= 1:
+        evidence_conf = "LOW"
+    else:
+        evidence_conf = "INSUFFICIENT"
+
+    rec_step = "Take the Verified GFG Assessment drill to benchmark your skills." if assessment_info else "Study the learning resources."
+
     return TopicDetailResponse(
         id=topic.id,
         subject_id=topic.subject_id,
@@ -349,12 +423,16 @@ def get_topic_detail(
         resources=resources,
         practice_questions=questions,
         dsa_problems=dsa_problems,
+        assessment=assessment_info,
         completion_percentage=prog.completion_percentage if prog else 0,
         status=prog.status if prog else "NOT_STARTED",
-        questions_attempted=prog.questions_attempted if prog else 0,
-        questions_correct=prog.questions_correct if prog else 0,
+        questions_attempted=q_attempted,
+        questions_correct=q_correct,
         coding_problems_solved=prog.coding_problems_solved if prog else 0,
         resources_completed=prog.resources_completed if prog else 0,
+        accuracy_rate=accuracy,
+        evidence_confidence=evidence_conf,
+        recommended_next_step=rec_step,
     )
 
 
