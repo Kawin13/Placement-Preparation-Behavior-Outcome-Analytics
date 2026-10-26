@@ -222,7 +222,7 @@ export const AICoachModal: React.FC<AICoachModalProps> = ({
                     className="text-[11px] font-medium flex items-center gap-1"
                   >
                     <Cpu className="w-3 h-3" />
-                    {explanation.provider_used === 'GEMINI_EXTERNAL' ? 'Gemini 1.5 Grounded' : 'Deterministic Offline Mentor'}
+                    {explanation.provider_used === 'GEMINI_EXTERNAL' ? 'Gemini 3.7 Grounded' : 'Deterministic Offline Mentor'}
                   </Badge>
                   {explanation.is_grounded_in_syllabus && (
                     <Badge variant="success" className="text-[11px]">

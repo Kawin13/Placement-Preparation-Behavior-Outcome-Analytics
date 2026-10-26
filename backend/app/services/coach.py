@@ -75,11 +75,14 @@ def explain_student_mistake(
                 f"Do not invent facts outside this syllabus question."
             )
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent"
+            target_model = settings.GEMINI_MODEL or settings.AI_MODEL_NAME or "gemini-3.7-flash"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent"
             headers = {
                 "x-goog-api-key": api_key,
                 "Content-Type": "application/json",
             }
+            if api_key.startswith("AQ."):
+                headers["Authorization"] = f"Bearer {api_key}"
             payload = {
                 "contents": [
                     {

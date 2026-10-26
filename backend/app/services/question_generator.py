@@ -93,11 +93,14 @@ def generate_questions_with_ai(
         f"}}"
     )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:generateContent"
+    target_model = settings.GEMINI_MODEL or settings.AI_MODEL_NAME or "gemini-3.7-flash"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent"
     headers = {
         "x-goog-api-key": api_key,
         "Content-Type": "application/json",
     }
+    if api_key.startswith("AQ."):
+        headers["Authorization"] = f"Bearer {api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -246,6 +249,6 @@ def generate_questions_with_ai(
     return {
         "questions_generated": len(created_questions),
         "questions": created_questions,
-        "provider_used": f"Google Gemini ({settings.AI_MODEL_NAME})",
+        "provider_used": f"Google Gemini ({settings.GEMINI_MODEL or settings.AI_MODEL_NAME})",
         "notice": "All generated questions are saved as DRAFT. Staff review and publication is required before student access.",
     }

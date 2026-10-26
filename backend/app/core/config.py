@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "gemini"  # "gemini" | "offline"
     GEMINI_API_KEY: Union[str, None] = None
     AI_API_KEY: Union[str, None] = None
-    AI_MODEL_NAME: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-3.7-flash"
+    AI_MODEL_NAME: str = "gemini-3.7-flash"
     AI_TIMEOUT_SECONDS: int = 8
 
     CORS_ORIGINS: Union[List[str], str] = [
