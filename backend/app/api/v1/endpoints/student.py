@@ -71,10 +71,30 @@ def get_own_profile(
 
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_student.id).first()
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student academic profile has not been initialized yet.",
+        cohort = (
+            db.query(Cohort)
+            .join(Department, Cohort.department_id == Department.id)
+            .filter(Department.institution_id == current_student.institution_id)
+            .first()
         )
+        if not cohort:
+            cohort = db.query(Cohort).first()
+
+        if cohort:
+            profile = StudentProfile(
+                user_id=current_student.id,
+                cohort_id=cohort.id,
+                roll_number=f"REG{uuid.uuid4().hex[:6].upper()}",
+                placement_status="NOT_PLACED",
+            )
+            db.add(profile)
+            db.commit()
+            db.refresh(profile)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Student academic profile has not been initialized yet and no cohort exists.",
+            )
     return _build_student_detailed(profile, current_student, db)
 
 

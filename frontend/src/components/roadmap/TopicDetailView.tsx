@@ -48,7 +48,10 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
   useEffect(() => {
     loadTopic();
     // Track topic viewing event
-    trackStudentBehaviorEvent('TOPIC_STUDY_SESSION_START', { topic_id: topicId });
+    trackStudentBehaviorEvent('SESSION_START', {
+      topic_id: topicId,
+      metadata: { context: 'TOPIC_STUDY' },
+    });
   }, [topicId]);
 
   const loadTopic = async () => {
@@ -69,7 +72,7 @@ export const TopicDetailView: React.FC<TopicDetailViewProps> = ({
       const full = await fetchResourceDetail(resource.id);
       setActiveResource(full);
       // Track resource study event
-      trackStudentBehaviorEvent('RESOURCE_VIEW', {
+      trackStudentBehaviorEvent('RESOURCE_OPENED', {
         topic_id: topicId,
         resource_id: resource.id,
       });

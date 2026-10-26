@@ -216,6 +216,7 @@ export function App() {
           currentView={viewMode}
           onViewChange={(view) => {
             if (view !== 'dsa') setSelectedDsaSlug(null);
+            if (view !== 'roadmap') setSelectedTopicId(null);
             setViewMode(view);
           }}
           onSignOut={handleSignOut}

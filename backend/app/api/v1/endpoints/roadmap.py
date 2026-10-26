@@ -449,10 +449,17 @@ def track_behavior_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Logs verified student behavior metrics (session cadence, focus intervals, revision timing).
-    Client durations are checked and server timestamps are strictly enforced.
-    """
+    allowed_event_types = {
+        "SESSION_START", "SESSION_COMPLETE", "SESSION_ABANDONED",
+        "PRACTICE_ATTEMPT", "MISTAKE_REVIEWED", "RESOURCE_OPENED",
+        "RESOURCE_COMPLETED", "CODING_SUBMIT", "TOPIC_SWITCH"
+    }
+    if payload.event_type not in allowed_event_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid event_type '{payload.event_type}'. Must be one of: {sorted(allowed_event_types)}"
+        )
+
     duration = max(0, min(payload.duration_seconds, 7200))  # Cap at 2 hours to avoid idle manipulation
     event = StudentBehaviorEvent(
         user_id=current_user.id,
