@@ -64,6 +64,10 @@ export function App() {
   const [selectedDsaSlug, setSelectedDsaSlug] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
 
+  // Topic-Wise Practice Navigation Filter State
+  const [selectedPracticeCategory, setSelectedPracticeCategory] = useState<string | null>(null);
+  const [selectedPracticeTopic, setSelectedPracticeTopic] = useState<string | null>(null);
+
   // Active Practice Execution State
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
@@ -72,6 +76,24 @@ export function App() {
   const [isCoachModalOpen, setIsCoachModalOpen] = useState(false);
   const [coachQuestionContext, setCoachQuestionContext] = useState<any>(null);
   const [coachTargetRoleId, setCoachTargetRoleId] = useState<string>('SDE');
+
+  const handleSelectTrack = (trackId: string, topicName?: string) => {
+    if (trackId === 'dsa') {
+      setSelectedDsaSlug(null);
+      setViewMode('dsa');
+    } else {
+      const categoryMap: Record<string, string> = {
+        quant: 'QUANTITATIVE_APTITUDE',
+        logical: 'LOGICAL_REASONING',
+        verbal: 'VERBAL_ABILITY',
+        sql: 'SQL_DATABASES',
+        hr: 'HR_BEHAVIORAL',
+      };
+      setSelectedPracticeCategory(categoryMap[trackId] || 'ALL');
+      setSelectedPracticeTopic(topicName || 'ALL');
+      setViewMode('practice');
+    }
+  };
 
   useEffect(() => {
     // Check local session
@@ -246,7 +268,21 @@ export function App() {
             )
           )}
           {viewMode === 'qbank' && <QuestionBankManager />}
-          {viewMode === 'practice' && <PracticeModuleList onStartSession={handleStartSession} />}
+          {viewMode === 'practice' && (
+            <PracticeModuleList
+              onStartSession={handleStartSession}
+              initialCategory={selectedPracticeCategory}
+              initialTopic={selectedPracticeTopic}
+              onClearFilter={() => {
+                setSelectedPracticeCategory(null);
+                setSelectedPracticeTopic(null);
+              }}
+              onLaunchDsa={(slug) => {
+                setSelectedDsaSlug(slug || null);
+                setViewMode('dsa');
+              }}
+            />
+          )}
           {viewMode === 'dsa' && (
             selectedDsaSlug ? (
               <DSACodingWorkspace
@@ -290,7 +326,14 @@ export function App() {
           {viewMode === 'cohort-analytics' && <CohortAnalyticsView />}
           {viewMode === 'admin' && <CollegeIntelligenceView currentUser={currentUser} />}
           {viewMode === 'catalog' && (
-            <LearningResourcesView onStartPractice={() => setViewMode('practice')} />
+            <LearningResourcesView
+              onSelectTrack={handleSelectTrack}
+              onStartPractice={() => {
+                setSelectedPracticeCategory('ALL');
+                setSelectedPracticeTopic('ALL');
+                setViewMode('practice');
+              }}
+            />
           )}
         </AppShell>
 

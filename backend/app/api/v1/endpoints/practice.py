@@ -467,11 +467,12 @@ def generate_questions_ai(
 @router.get("/assessments", response_model=List[AssessmentListItem])
 def list_assessments(
     category: Optional[str] = Query(None),
+    topic: Optional[str] = Query(None),
     is_published: Optional[bool] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Lists available assessments filtered by category and publication state."""
+    """Lists available assessments filtered by category, topic, and publication state."""
     query = db.query(Assessment)
 
     # Students only see published assessments for their institution or system-wide
@@ -490,6 +491,9 @@ def list_assessments(
     if category:
         query = query.filter(Assessment.category == category)
 
+    if topic:
+        query = query.filter(Assessment.topic == topic)
+
     assessments = query.order_by(desc(Assessment.created_at)).all()
 
     items = []
@@ -503,6 +507,7 @@ def list_assessments(
                 title=a.title,
                 description=a.description,
                 category=a.category,
+                topic=a.topic,
                 duration_minutes=a.duration_minutes,
                 passing_score=a.passing_score,
                 version=a.version,
@@ -539,6 +544,7 @@ def get_assessment_details(
         description=assessment.description,
         instructions=assessment.instructions,
         category=assessment.category,
+        topic=assessment.topic,
         duration_minutes=assessment.duration_minutes,
         passing_score=assessment.passing_score,
         version=assessment.version,
@@ -565,6 +571,7 @@ def create_assessment(
         description=payload.description,
         instructions=payload.instructions,
         category=payload.category,
+        topic=payload.topic,
         duration_minutes=payload.duration_minutes,
         passing_score=payload.passing_score,
         is_published=payload.is_published,
@@ -581,6 +588,7 @@ def create_assessment(
         description=assessment.description,
         instructions=assessment.instructions,
         category=assessment.category,
+        topic=assessment.topic,
         duration_minutes=assessment.duration_minutes,
         passing_score=assessment.passing_score,
         version=assessment.version,

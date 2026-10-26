@@ -15,6 +15,7 @@ class Assessment(Base):
     description = Column(String(500), nullable=True)
     instructions = Column(String(1000), nullable=True)
     category = Column(String(50), nullable=True)
+    topic = Column(String(100), nullable=True)
     duration_minutes = Column(Integer, nullable=False)
     passing_score = Column(Numeric(5, 2), nullable=True)
     version = Column(Integer, default=1, nullable=False)

@@ -173,6 +173,7 @@ class AssessmentCreate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     instructions: Optional[str] = Field(None, max_length=1000)
     category: str = Field("QUANTITATIVE_APTITUDE", max_length=50)
+    topic: Optional[str] = Field(None, max_length=100)
     duration_minutes: int = Field(30, ge=1, le=300)
     passing_score: Optional[Decimal] = Field(None, ge=0)
     is_published: bool = False
@@ -183,6 +184,7 @@ class AssessmentUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     instructions: Optional[str] = Field(None, max_length=1000)
     category: Optional[str] = Field(None, max_length=50)
+    topic: Optional[str] = Field(None, max_length=100)
     duration_minutes: Optional[int] = Field(None, ge=1, le=300)
     passing_score: Optional[Decimal] = Field(None, ge=0)
     is_published: Optional[bool] = None
@@ -194,6 +196,7 @@ class AssessmentListItem(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
+    topic: Optional[str] = None
     duration_minutes: int
     passing_score: Optional[Decimal] = None
     version: int

@@ -11,14 +11,17 @@ import {
   ArrowRight,
   Sparkles,
   CheckCircle2,
+  Target,
 } from 'lucide-react';
 
 interface LearningResourcesViewProps {
   onStartPractice?: () => void;
+  onSelectTrack?: (trackId: string, topicName?: string) => void;
 }
 
 export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
   onStartPractice,
+  onSelectTrack,
 }) => {
   const tracks = [
     {
@@ -29,6 +32,7 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
       modulesCount: 24,
       icon: <Calculator className="w-5 h-5 text-[#FF5B3D]" />,
       summary: 'Foundational problem-solving topics evaluated by leading tech firms and core recruiters.',
+      actionLabel: 'Practise Track',
     },
     {
       id: 'logical',
@@ -38,6 +42,7 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
       modulesCount: 18,
       icon: <Brain className="w-5 h-5 text-[#292444]" />,
       summary: 'Analytical deduction and cognitive patterns matching corporate assessment standards.',
+      actionLabel: 'Practise Track',
     },
     {
       id: 'verbal',
@@ -47,15 +52,18 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
       modulesCount: 16,
       icon: <BookOpen className="w-5 h-5 text-[#FF5B3D]" />,
       summary: 'Executive communication, contextual reading, and verbal logic drills.',
+      actionLabel: 'Practise Track',
     },
     {
       id: 'dsa',
       title: 'Programming & Data Structures',
       category: 'Technical Core',
       topics: ['Arrays & Strings', 'Linked Lists & Trees', 'Dynamic Programming', 'Graph Traversal'],
-      modulesCount: 32,
+      modulesCount: 36,
       icon: <Code2 className="w-5 h-5 text-[#292444]" />,
-      summary: 'Core computer science algorithms with time and space complexity evaluations.',
+      summary: 'Core computer science algorithms with 36 GeeksforGeeks problems across 12 topics in DSA Studio.',
+      actionLabel: 'Open DSA Studio (36 GFG Problems)',
+      isDSA: true,
     },
     {
       id: 'sql',
@@ -65,6 +73,7 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
       modulesCount: 14,
       icon: <Database className="w-5 h-5 text-[#FF5B3D]" />,
       summary: 'Relational query construction, data transformations, and indexing strategies.',
+      actionLabel: 'Practise Track',
     },
     {
       id: 'hr',
@@ -74,8 +83,17 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
       modulesCount: 10,
       icon: <CheckCircle2 className="w-5 h-5 text-[#15803D]" />,
       summary: 'Structured behavioral storytelling aligned with corporate culture and leadership principles.',
+      actionLabel: 'Practise Track',
     },
   ];
+
+  const handleTrackClick = (trackId: string, topicName?: string) => {
+    if (onSelectTrack) {
+      onSelectTrack(trackId, topicName);
+    } else if (onStartPractice) {
+      onStartPractice();
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in pb-12">
@@ -88,29 +106,38 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
                 Institutional Curriculum
               </Badge>
               <Badge variant="neutral" className="text-xs text-white/80 border-white/20">
-                Syllabus Aligned
+                Topic-Wise Assessments
               </Badge>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight text-white mb-2">
               Learning Resources & Curriculum Overview
             </h1>
             <p className="text-white/80 text-sm leading-relaxed">
-              Explore college-approved learning paths, syllabus breakdowns, and recommended practice drills.
-              Each track is grounded in verified placement blueprints and institutional curriculum guidelines.
+              Explore college-approved learning paths and topic-wise diagnostics.
+              Click any focus area chip or track below to launch targeted diagnostics and practice questions for that exact topic.
             </p>
           </div>
 
-          {onStartPractice && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onStartPractice}
-              leftIcon={<Sparkles className="w-4 h-4" />}
-              className="text-xs shrink-0 shadow-sm"
+          <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 shrink-0">
+            {onStartPractice && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onStartPractice}
+                leftIcon={<Sparkles className="w-4 h-4" />}
+                className="text-xs shrink-0 shadow-sm"
+              >
+                Browse All Assessments
+              </Button>
+            )}
+            <button
+              onClick={() => handleTrackClick('dsa')}
+              className="text-xs text-white/80 hover:text-white flex items-center gap-1.5 transition-colors font-medium bg-white/10 px-3 py-1.5 rounded-xl hover:bg-white/20"
             >
-              Start Practice Session
-            </Button>
-          )}
+              <Code2 className="w-3.5 h-3.5 text-[#FF5B3D]" />
+              <span>DSA Studio (36 Problems)</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -119,52 +146,76 @@ export const LearningResourcesView: React.FC<LearningResourcesViewProps> = ({
         {tracks.map((track) => (
           <Card
             key={track.id}
-            className="p-6 bg-white border border-[#E8E0D2] shadow-sm rounded-3xl flex flex-col justify-between hover:border-[#FF5B3D]/40 transition-all group"
+            onClick={() => handleTrackClick(track.id)}
+            className="p-6 bg-white border border-[#E8E0D2] shadow-sm rounded-3xl flex flex-col justify-between hover:border-[#FF5B3D]/60 hover:shadow-md transition-all group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-[#FAF6ED] border border-[#E8E0D2] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 rounded-2xl bg-[#FAF6ED] border border-[#E8E0D2] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#FF5B3D]/10 transition-all">
                   {track.icon}
                 </div>
-                <Badge variant="neutral" className="text-[10px] font-semibold">
-                  {track.category}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  {track.isDSA && (
+                    <Badge variant="coral" className="text-[10px] font-bold">
+                      GFG Judge
+                    </Badge>
+                  )}
+                  <Badge variant="neutral" className="text-[10px] font-semibold">
+                    {track.category}
+                  </Badge>
+                </div>
               </div>
 
-              <h3 className="text-lg font-bold text-[#292444] font-display mb-1.5 group-hover:text-[#FF5B3D] transition-colors">
-                {track.title}
+              <h3 className="text-lg font-bold text-[#292444] font-display mb-1.5 group-hover:text-[#FF5B3D] transition-colors flex items-center justify-between">
+                <span>{track.title}</span>
+                <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#FF5B3D]" />
               </h3>
               <p className="text-xs text-[#5E5875] leading-relaxed mb-4">
                 {track.summary}
               </p>
 
-              <div className="space-y-2 pt-4 border-t border-[#E8E0D2]/60">
-                <span className="text-[11px] font-bold text-[#292444] uppercase tracking-wider block">
-                  Key Focus Areas:
-                </span>
+              <div className="space-y-2.5 pt-4 border-t border-[#E8E0D2]/60">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#292444] uppercase tracking-wider block">
+                    Key Focus Areas (Touch to Practice):
+                  </span>
+                  <span className="text-[10px] text-[#8E879E]">Topic-wise</span>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {track.topics.map((t) => (
-                    <span
+                    <button
                       key={t}
-                      className="text-[11px] bg-[#FAF6ED] text-[#292444] px-2.5 py-1 rounded-full border border-[#E8E0D2]"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTrackClick(track.id, t);
+                      }}
+                      className="text-[11px] bg-[#FAF6ED] text-[#292444] px-2.5 py-1 rounded-full border border-[#E8E0D2] hover:bg-[#FF5B3D] hover:text-white hover:border-[#FF5B3D] transition-all font-medium flex items-center gap-1 group/pill shadow-2xs"
+                      title={`Launch ${t} diagnostic assessment`}
                     >
-                      {t}
-                    </span>
+                      <span>{t}</span>
+                      <Target className="w-2.5 h-2.5 opacity-40 group-hover/pill:opacity-100 transition-opacity" />
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
 
             <div className="mt-6 pt-4 border-t border-[#E8E0D2]/60 flex items-center justify-between text-xs text-[#5E5875]">
-              <span className="font-medium">{track.modulesCount} Standard Drills</span>
-              {onStartPractice && (
-                <button
-                  onClick={onStartPractice}
-                  className="text-xs font-semibold text-[#FF5B3D] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
-                >
-                  Practise Track <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <span className="font-medium text-[#292444]/80">
+                {track.modulesCount} Standard Drills
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTrackClick(track.id);
+                }}
+                className="text-xs font-bold text-[#FF5B3D] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+              >
+                <span>{track.actionLabel}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </Card>
         ))}

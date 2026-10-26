@@ -8,6 +8,7 @@ export interface AssessmentListItem {
   title: string;
   description: string | null;
   category: string | null;
+  topic: string | null;
   duration_minutes: number;
   passing_score: number | null;
   version: number;
@@ -121,9 +122,13 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-export async function fetchAssessments(category?: string): Promise<AssessmentListItem[]> {
-  const query = category ? `?category=${encodeURIComponent(category)}` : '';
-  const res = await fetch(`${API_BASE}/practice/assessments${query}`, {
+export async function fetchAssessments(category?: string, topic?: string): Promise<AssessmentListItem[]> {
+  const params = new URLSearchParams();
+  if (category && category !== 'ALL') params.append('category', category);
+  if (topic && topic !== 'ALL') params.append('topic', topic);
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+
+  const res = await fetch(`${API_BASE}/practice/assessments${queryStr}`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) {
