@@ -146,5 +146,7 @@ class RecommendedActionResponse(BaseModel):
     title: str
     reason: str
     target_id: Optional[str] = None
+    target_slug: Optional[str] = None
+    target_topic_id: Optional[str] = None
     target_url: str
     estimated_minutes: int

@@ -119,12 +119,15 @@ export interface TopicDetail {
 }
 
 export interface NextActionResponse {
-  action_type: 'SELECT_PATH' | 'STUDY_RESOURCE' | 'PRACTICE_QUESTIONS' | 'SOLVE_DSA' | 'REVISE_MISTAKES';
+  action_type: 'SELECT_PATH' | 'STUDY_RESOURCE' | 'PRACTICE_QUESTIONS' | 'SOLVE_DSA' | 'REVIEW_MISTAKES' | 'REVISE_MISTAKES' | 'SOLVE_PRACTICE' | string;
   title: string;
   reason: string;
   target_id?: string | null;
   target_slug?: string | null;
+  target_topic_id?: string | null;
+  target_url?: string | null;
   path_url?: string | null;
+  estimated_minutes?: number;
 }
 
 export async function fetchCareerPaths(): Promise<CareerPathItem[]> {

@@ -264,6 +264,7 @@ export function App() {
                   setViewMode('dsa');
                 }}
                 onStartPractice={() => setViewMode('practice')}
+                onReviewMistakes={() => setViewMode('mistakes')}
               />
             )
           )}

@@ -296,6 +296,18 @@ def get_topic_detail(
                     default_points=q.default_points,
                 )
             )
+    if not questions:
+        raw_qs = db.query(Question).filter(Question.status == "PUBLISHED").limit(5).all()
+        for q in raw_qs:
+            questions.append(
+                TopicPracticeQuestionItem(
+                    id=q.id,
+                    title=q.title,
+                    difficulty=q.difficulty,
+                    question_type=q.question_type,
+                    default_points=q.default_points,
+                )
+            )
 
     # Fetch DSA problems
     dsa_problems = []
@@ -481,8 +493,15 @@ def get_next_recommended_action(
 ):
     """
     Intelligent curriculum engine: determines the student's highest priority next activity
-    based on unresolved mistakes, incomplete resources, or pending roadmap topics.
+    scoped to their active career goal, unresolved mistakes, incomplete resources, or pending topics.
     """
+    # 0. Identify active career path
+    goal = db.query(StudentCareerGoal).filter(StudentCareerGoal.user_id == current_user.id).first()
+    active_path_id = goal.career_path_id if goal else None
+    if not active_path_id:
+        sde = db.query(CareerPath).filter(CareerPath.code == "SDE").first()
+        active_path_id = sde.id if sde else None
+
     # 1. Check for unresolved mistakes
     unresolved_mistake = (
         db.query(MistakeNotebookEntry)
@@ -504,28 +523,71 @@ def get_next_recommended_action(
             estimated_minutes=10,
         )
 
-    # 2. Check for in-progress topic with unfinished resources
-    in_prog = (
-        db.query(StudentTopicProgress)
-        .filter(
-            StudentTopicProgress.user_id == current_user.id,
-            StudentTopicProgress.status == "IN_PROGRESS",
+    # 2. Check for in-progress topic in student's active career path
+    in_prog = None
+    if active_path_id:
+        in_prog = (
+            db.query(StudentTopicProgress)
+            .join(RoadmapTopic, StudentTopicProgress.topic_id == RoadmapTopic.id)
+            .join(RoadmapSubject, RoadmapTopic.subject_id == RoadmapSubject.id)
+            .filter(
+                StudentTopicProgress.user_id == current_user.id,
+                RoadmapSubject.career_path_id == active_path_id,
+                StudentTopicProgress.status == "IN_PROGRESS",
+            )
+            .order_by(desc(StudentTopicProgress.last_activity_at))
+            .first()
         )
-        .first()
-    )
+
     if in_prog and in_prog.topic:
         res = db.query(LearningResource).filter(LearningResource.topic_id == in_prog.topic_id).first()
-        if res:
+        display_title = res.title if res else in_prog.topic.name
+        return RecommendedActionResponse(
+            action_type="STUDY_RESOURCE",
+            title=f"Study: {display_title}",
+            reason=f"Continue your in-progress study of {in_prog.topic.name}.",
+            target_id=str(in_prog.topic.id),
+            target_slug=in_prog.topic.slug,
+            target_topic_id=str(in_prog.topic.id),
+            target_url=f"/roadmap/topic/{in_prog.topic.id}",
+            estimated_minutes=res.estimated_duration_min if res else (in_prog.topic.estimated_minutes or 20),
+        )
+
+    # 3. Check for next unstarted/uncompleted topic in student's active career path
+    if active_path_id:
+        completed_ids = {
+            p.topic_id
+            for p in db.query(StudentTopicProgress.topic_id)
+            .filter(
+                StudentTopicProgress.user_id == current_user.id,
+                StudentTopicProgress.status == "COMPLETED",
+            )
+            .all()
+        }
+        next_topic = (
+            db.query(RoadmapTopic)
+            .join(RoadmapSubject, RoadmapTopic.subject_id == RoadmapSubject.id)
+            .filter(
+                RoadmapSubject.career_path_id == active_path_id,
+                ~RoadmapTopic.id.in_(completed_ids) if completed_ids else True,
+            )
+            .order_by(RoadmapSubject.display_order, RoadmapTopic.display_order)
+            .first()
+        )
+        if next_topic:
+            res = db.query(LearningResource).filter(LearningResource.topic_id == next_topic.id).first()
             return RecommendedActionResponse(
                 action_type="STUDY_RESOURCE",
-                title=f"Study: {res.title}",
-                reason=f"Continue your in-progress study of {in_prog.topic.name}.",
-                target_id=str(res.id),
-                target_url=f"/roadmap/topic/{in_prog.topic.id}",
-                estimated_minutes=res.estimated_duration_min,
+                title=f"Study: {next_topic.name}",
+                reason=f"Begin your foundational learning in {next_topic.subject.name}.",
+                target_id=str(next_topic.id),
+                target_slug=next_topic.slug,
+                target_topic_id=str(next_topic.id),
+                target_url=f"/roadmap/topic/{next_topic.id}",
+                estimated_minutes=res.estimated_duration_min if res else (next_topic.estimated_minutes or 25),
             )
 
-    # 3. Default to next DSA Problem or Core Topic
+    # 4. Default to next DSA Problem
     unsolved_dsa = db.query(DSAProblem).filter(DSAProblem.status == "PUBLISHED").order_by(DSAProblem.problem_number).first()
     if unsolved_dsa:
         return RecommendedActionResponse(
@@ -533,11 +595,12 @@ def get_next_recommended_action(
             title=f"Solve Coding Problem: {unsolved_dsa.title}",
             reason="Sharpen your coding skills with algorithmic problem solving.",
             target_id=str(unsolved_dsa.id),
+            target_slug=unsolved_dsa.slug,
             target_url=f"/dsa/{unsolved_dsa.slug}",
             estimated_minutes=25,
         )
 
-    # 4. Fallback to general practice drill
+    # 5. Fallback to general practice drill
     return RecommendedActionResponse(
         action_type="SOLVE_PRACTICE",
         title="Quantitative Aptitude Diagnostic Drill",

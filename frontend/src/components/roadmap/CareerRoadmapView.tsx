@@ -32,12 +32,14 @@ interface CareerRoadmapViewProps {
   onSelectTopic: (topicId: string) => void;
   onLaunchDsa?: (slug: string) => void;
   onStartPractice?: () => void;
+  onReviewMistakes?: () => void;
 }
 
 export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
   onSelectTopic,
   onLaunchDsa,
   onStartPractice,
+  onReviewMistakes,
 }) => {
   const [careerPaths, setCareerPaths] = useState<CareerPathItem[]>([]);
   const [currentGoal, setCurrentGoal] = useState<StudentCareerGoal | null>(null);
@@ -66,7 +68,7 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
 
       if (goal) {
         const [tree, rec] = await Promise.all([
-          fetchRoadmapTree(),
+          fetchRoadmapTree(goal.career_path_id),
           fetchNextRecommendedAction().catch(() => null),
         ]);
         setRoadmapTree(tree);
@@ -90,7 +92,7 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
       setCurrentGoal(goal);
       setIsChangingGoal(false);
       const [tree, rec] = await Promise.all([
-        fetchRoadmapTree(),
+        fetchRoadmapTree(pathId),
         fetchNextRecommendedAction().catch(() => null),
       ]);
       setRoadmapTree(tree);
@@ -102,6 +104,38 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
       alert(err.message || 'Failed to assign career path');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleStartActivity = () => {
+    if (!nextAction) return;
+
+    if (nextAction.action_type === 'REVIEW_MISTAKES' || nextAction.action_type === 'REVISE_MISTAKES') {
+      if (onReviewMistakes) {
+        onReviewMistakes();
+        return;
+      }
+    }
+
+    if (nextAction.action_type === 'SOLVE_DSA') {
+      if (nextAction.target_slug && onLaunchDsa) {
+        onLaunchDsa(nextAction.target_slug);
+        return;
+      }
+    }
+
+    if (nextAction.action_type === 'SOLVE_PRACTICE') {
+      if (onStartPractice) {
+        onStartPractice();
+        return;
+      }
+    }
+
+    const topicId = nextAction.target_topic_id || nextAction.target_id;
+    if (topicId) {
+      onSelectTopic(topicId);
+    } else if (onStartPractice) {
+      onStartPractice();
     }
   };
 
@@ -289,12 +323,12 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
               Action: {nextAction?.action_type?.replace(/_/g, ' ') || 'LEARNING DRILL'}
             </span>
             <div className="flex items-center gap-2">
-              {nextAction?.target_id && (
+              {nextAction && (
                 <Button
                   variant="primary"
                   size="sm"
                   rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-                  onClick={() => onSelectTopic(nextAction.target_id!)}
+                  onClick={handleStartActivity}
                   className="font-bold shadow-warm"
                 >
                   Start Activity
@@ -302,11 +336,11 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
               )}
               {nextAction?.action_type === 'SOLVE_DSA' && nextAction.target_slug && onLaunchDsa && (
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
                   rightIcon={<Code2 className="w-3.5 h-3.5" />}
                   onClick={() => onLaunchDsa(nextAction.target_slug!)}
-                  className="font-bold shadow-warm"
+                  className="font-bold bg-white/10 hover:bg-white/20 text-white border-none"
                 >
                   Solve Problem
                 </Button>
