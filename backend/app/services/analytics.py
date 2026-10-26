@@ -394,7 +394,7 @@ def calculate_cohort_analytics(
         for outcome in verified_placed_outcomes:
             st = calculate_student_analytics(db, outcome.user_id, days=None)
             prep_hours.append(float(st.prep_time.total_hours))
-            salaries.append(float(outcome.salary_lpa or 0.0))
+            salaries.append(float(outcome.ctc_lpa or 0.0))
 
         spearman_rho = _compute_spearman_rank_correlation(prep_hours, salaries)
         if spearman_rho is not None:

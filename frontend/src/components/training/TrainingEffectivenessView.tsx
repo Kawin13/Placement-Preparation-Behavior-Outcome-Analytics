@@ -442,9 +442,9 @@ export const TrainingEffectivenessView: React.FC<TrainingEffectivenessViewProps>
                           <strong className="text-amber-600">{effectiveness.attrition_missing_count}</strong>
                         </span>
                       </div>
-                      {effectiveness.insufficient_data_reasons.length > 0 && (
+                      {(effectiveness.insufficient_data_reasons?.length ?? 0) > 0 && (
                         <div className="mt-2 space-y-1">
-                          {effectiveness.insufficient_data_reasons.map((r, idx) => (
+                          {effectiveness.insufficient_data_reasons?.map((r, idx) => (
                             <p key={idx} className="text-amber-700 flex items-center gap-1.5 text-[11px]">
                               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                               <span>{r}</span>
